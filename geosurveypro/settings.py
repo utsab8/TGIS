@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts',
     'surveys',
-    'widget_tweaks',
+    'land_parser',
 ]
 
 MIDDLEWARE = [

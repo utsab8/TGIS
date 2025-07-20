@@ -1,0 +1,250 @@
+{% extends 'land_parser/base.html' %}
+
+{% block title %}Upload KML File{% endblock %}
+
+{% block content %}
+<div class="flex flex-col items-center justify-center min-h-[80vh] py-8">
+    <!-- Header -->
+    <div class="text-center mb-8 animate-fade-in">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-blue-600 flex items-center justify-center gap-2">
+            <svg class="w-10 h-10 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Upload KML File
+        </h1>
+        <p class="mt-2 text-lg text-gray-500">Upload your KML file to extract land parcel information</p>
+    </div>
+
+    <!-- Instructions Card -->
+    <div class="w-full max-w-2xl bg-white/80 rounded-xl shadow-xl mb-8 p-6 animate-fade-in-up">
+        <div class="flex flex-col md:flex-row gap-6">
+            <div class="flex-1">
+                <h3 class="font-semibold text-blue-700 mb-2 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-green-500 animate-pulse" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    Supported Format
+                </h3>
+                <ul class="list-disc list-inside text-gray-600 text-sm">
+                    <li>KML files (.kml extension)</li>
+                    <li>Maximum file size: 5MB</li>
+                    <li>UTF-8 encoding recommended</li>
+                </ul>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-blue-700 mb-2 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-500 animate-pulse" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 12.414a4 4 0 10-5.657 5.657l4.243 4.243a8 8 0 1111.314-11.314l-4.243 4.243z"/></svg>
+                    Expected Data
+                </h3>
+                <ul class="list-disc list-inside text-gray-600 text-sm">
+                    <li>Land parcel boundaries</li>
+                    <li>Owner information</li>
+                    <li>Kitta numbers</li>
+                    <li>Geographic coordinates</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Form Card -->
+    <div class="w-full max-w-2xl bg-white/90 rounded-xl shadow-2xl p-8 animate-fade-in-up">
+        <form method="post" enctype="multipart/form-data" id="upload-form">
+            {% csrf_token %}
+            <!-- File Upload Area -->
+            <div id="upload-area" class="file-upload-area flex flex-col items-center justify-center border-4 border-dashed border-blue-300 rounded-xl p-8 mb-4 bg-gradient-to-br from-blue-50 to-white transition-all duration-300 cursor-pointer hover:shadow-lg hover:border-blue-500 relative overflow-hidden animate-fade-in">
+                <div class="upload-content flex flex-col items-center gap-2">
+                    <svg id="cloud-upload-icon" class="w-16 h-16 text-blue-400 animate-float mb-2 transition-all duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16v-4a4 4 0 018 0v4m-4-4v8m0 0l-4-4m4 4l4-4"/></svg>
+                    <h5 id="upload-message" class="text-lg font-semibold text-blue-700">Drag & Drop your KML file here</h5>
+                    <p class="text-gray-400 text-sm">or click to browse</p>
+                    <div class="mt-2 w-full flex justify-center">
+                        <input id="kml_file" name="kml_file" type="file" accept=".kml" class="absolute opacity-0 w-full h-full cursor-pointer" tabindex="-1" style="z-index:1;" required>
+                    </div>
+                </div>
+                <div id="upload-overlay" class="absolute inset-0 bg-blue-100/80 flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300 z-10">
+                    <svg class="w-20 h-20 text-blue-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                </div>
+            </div>
+
+            <!-- File Info (hidden by default) -->
+            <div id="file-info" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex items-center gap-3 animate-fade-in">
+                <svg class="w-8 h-8 text-green-500 animate-pulse" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <div>
+                    <span id="file-name" class="font-semibold text-blue-700"></span><br>
+                    <span id="file-size" class="text-gray-500 text-xs"></span>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="w-full py-3 rounded-lg bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold text-lg shadow-lg hover:from-blue-600 hover:to-blue-800 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" id="submit-btn" disabled>
+                <svg class="w-6 h-6 animate-fade-in" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                Upload and Process
+            </button>
+
+            <!-- Fallback Error Message -->
+            <div id="no-file-error" class="hidden bg-red-100 border border-red-300 text-red-700 rounded-lg p-4 mt-4 animate-fade-in">
+                <h6 class="font-semibold flex items-center gap-2"><svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-1.414 1.414M6.343 17.657l-1.414-1.414M5.636 5.636l1.414 1.414M17.657 17.657l1.414-1.414M12 8v4m0 4h.01"/></svg>Please select a KML file before submitting.</h6>
+            </div>
+
+            <!-- Form Errors -->
+            {% if form.errors %}
+                <div class="bg-red-100 border border-red-300 text-red-700 rounded-lg p-4 mt-4 animate-fade-in">
+                    <h6 class="font-semibold flex items-center gap-2"><svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-1.414 1.414M6.343 17.657l-1.414-1.414M5.636 5.636l1.414 1.414M17.657 17.657l1.414-1.414M12 8v4m0 4h.01"/></svg>Please correct the following errors:</h6>
+                    <ul class="mt-2 text-sm">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Features Card -->
+    <div class="w-full max-w-2xl bg-white/80 rounded-xl shadow-xl mt-8 p-6 animate-fade-in-up">
+        <div class="flex flex-col md:flex-row gap-6">
+            <div class="flex-1 text-center">
+                <div class="mb-3 flex justify-center">
+                    <svg class="w-10 h-10 text-blue-500 animate-float" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A2 2 0 0020 6.382V5a2 2 0 00-2-2H6a2 2 0 00-2 2v1.382a2 2 0 00.447 1.342L9 10m6 0v10a2 2 0 01-2 2H9a2 2 0 01-2-2V10m6 0H9"/></svg>
+                </div>
+                <h6 class="font-semibold text-blue-700">Preview Data</h6>
+                <p class="text-gray-500 text-sm">Review extracted land parcel information before processing</p>
+            </div>
+            <div class="flex-1 text-center">
+                <div class="mb-3 flex justify-center">
+                    <svg class="w-10 h-10 text-green-500 animate-float" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                </div>
+                <h6 class="font-semibold text-green-700">Export CSV</h6>
+                <p class="text-gray-500 text-sm">Download parsed data as a CSV file for further analysis</p>
+            </div>
+            <div class="flex-1 text-center">
+                <div class="mb-3 flex justify-center">
+                    <svg class="w-10 h-10 text-yellow-500 animate-float" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 21V7a2 2 0 00-2-2H6a2 2 0 00-2 2v14"/></svg>
+                </div>
+                <h6 class="font-semibold text-yellow-700">Save to Database</h6>
+                <p class="text-gray-500 text-sm">Store land parcel records in the system database</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('kml_file');
+    const fileInfo = document.getElementById('file-info');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const submitBtn = document.getElementById('submit-btn');
+    const uploadContent = document.querySelector('.upload-content');
+    const uploadOverlay = document.getElementById('upload-overlay');
+    const cloudIcon = document.getElementById('cloud-upload-icon');
+    const noFileError = document.getElementById('no-file-error');
+    const uploadMessage = document.getElementById('upload-message');
+
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+        uploadOverlay.style.opacity = 1;
+    });
+
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        uploadOverlay.style.opacity = 0;
+    });
+
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        uploadOverlay.style.opacity = 0;
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect(files[0]);
+        }
+    });
+
+    // Click to browse
+    uploadArea.addEventListener('click', function() {
+        fileInput.click();
+    });
+
+    // File input change
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            handleFileSelect(this.files[0]);
+        }
+    });
+
+    function handleFileSelect(file) {
+        // Validate file type
+        if (!file.name.toLowerCase().endsWith('.kml')) {
+            alert('Please select a KML file (.kml extension)');
+            return;
+        }
+        // Validate file size (5MB)
+        const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+        if (file.size > maxSize) {
+            alert('File size must be under 5MB');
+            return;
+        }
+        // Show file info
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        fileInfo.classList.remove('hidden');
+        // Update upload area message and icon, but keep file input in DOM
+        cloudIcon.classList.remove('text-blue-400');
+        cloudIcon.classList.add('text-green-500');
+        cloudIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>';
+        uploadMessage.textContent = 'File Selected!';
+        uploadMessage.classList.remove('text-blue-700');
+        uploadMessage.classList.add('text-green-700');
+        // Enable submit button
+        submitBtn.disabled = false;
+        // Hide error
+        if (noFileError) noFileError.classList.add('hidden');
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Form submission
+    document.getElementById('upload-form').addEventListener('submit', function(e) {
+        // Debug: log file input
+        console.log('File input files:', fileInput.files);
+        if (!fileInput.files || fileInput.files.length === 0) {
+            e.preventDefault();
+            if (noFileError) noFileError.classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<svg class="w-6 h-6 animate-fade-in" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg> Upload and Process';
+            return false;
+        }
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<svg class="w-6 h-6 animate-spin mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>Processing...';
+    });
+});
+</script>
+<style>
+@keyframes fade-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in 0.8s cubic-bezier(0.4,0,0.2,1) both; }
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up { animation: fade-in-up 1s cubic-bezier(0.4,0,0.2,1) both; }
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+.animate-float { animation: float 2s ease-in-out infinite; }
+</style>
+{% endblock %} 

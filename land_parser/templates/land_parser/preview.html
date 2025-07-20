@@ -1,0 +1,943 @@
+{% extends 'land_parser/base.html' %}
+{% load land_parser_extras %}
+
+{% block title %}Preview KML Data{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="flex flex-col items-center justify-center min-h-[80vh] py-8 bg-gradient-to-br from-blue-50 to-blue-100 animate-fade-in">
+    <div class="w-full max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 animate-fade-in-up">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-blue-700 flex items-center gap-2">
+                    <svg class="w-8 h-8 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A2 2 0 0020 6.382V5a2 2 0 00-2-2H6a2 2 0 00-2 2v1.382a2 2 0 00.447 1.342L9 10m6 0v4m0 0l-6 3m6-3l-6-3"/></svg>
+                    Preview KML Data
+                </h1>
+                <p class="text-gray-500 mt-1">Review extracted land parcel information</p>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <a href="{% url 'land_parser:upload' %}" class="inline-flex items-center px-4 py-2 rounded-lg bg-white/80 hover:bg-blue-100 text-blue-700 font-semibold shadow transition-all duration-200 animate-fade-in-up">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    Upload New File
+                </a>
+            </div>
+        </div>
+
+        <!-- File Information Card -->
+        <div class="glass-card mb-6 animate-fade-in-up">
+            <div class="flex flex-wrap gap-6 p-6">
+                <div class="flex-1 min-w-[180px]">
+                    <div class="text-xs text-gray-500">Filename</div>
+                    <div class="font-semibold text-blue-700">{{ preview_data.filename }}</div>
+                </div>
+                <div class="flex-1 min-w-[120px]">
+                    <div class="text-xs text-gray-500">File Size</div>
+                    <div class="font-semibold text-blue-700">{{ preview_data.file_size|format_file_size }}</div>
+                </div>
+                <div class="flex-1 min-w-[120px]">
+                    <div class="text-xs text-gray-500">Parcels Found</div>
+                    <div class="font-semibold text-blue-700">{{ preview_data.total_count }}</div>
+                </div>
+                <div class="flex-1 min-w-[120px]">
+                    <div class="text-xs text-gray-500">Total Area</div>
+                    <div class="font-semibold text-green-600">{{ preview_data.total_area|floatformat:2 }} sq m</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Animated Statistics Card -->
+        {% if preview_data.statistics %}
+        <div class="glass-card mb-6 animate-fade-in-up delay-100">
+            <div class="p-6 grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
+                <div>
+                    <div class="text-2xl font-bold text-blue-600 animate-count">{{ preview_data.statistics.placemarks_found }}</div>
+                    <div class="text-xs text-gray-500">Placemarks</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-green-600 animate-count">{{ preview_data.statistics.parcels_with_kitta }}</div>
+                    <div class="text-xs text-gray-500">With Kitta</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-cyan-600 animate-count">{{ preview_data.statistics.parcels_with_owner }}</div>
+                    <div class="text-xs text-gray-500">With Owner</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-yellow-500 animate-count">{{ preview_data.statistics.parcels_with_area }}</div>
+                    <div class="text-xs text-gray-500">With Area</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-gray-600 animate-count">{{ preview_data.statistics.polygons_found }}</div>
+                    <div class="text-xs text-gray-500">Polygons</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-indigo-600 animate-count">{{ preview_data.statistics.points_found }}</div>
+                    <div class="text-xs text-gray-500">Points</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Summary Statistics Card -->
+        <div class="glass-card mb-6 animate-fade-in-up delay-200">
+            <div class="p-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div>
+                    <div class="text-3xl font-extrabold text-blue-700 animate-count">{{ preview_data.total_count }}</div>
+                    <div class="text-xs text-gray-500">Total Parcels</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-extrabold text-green-600 animate-count">{{ preview_data.total_area_hectares|floatformat:2 }}</div>
+                    <div class="text-xs text-gray-500">Total Area (ha)</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-extrabold text-cyan-600 animate-count">{{ preview_data.avg_area|floatformat:0 }}</div>
+                    <div class="text-xs text-gray-500">Avg Area (sq m)</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-extrabold text-yellow-500 animate-count">{{ preview_data.max_area|floatformat:0 }}</div>
+                    <div class="text-xs text-gray-500">Largest Parcel (sq m)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Selected Analytics Card -->
+        <div id="selected-analytics" class="glass-card mb-6 animate-fade-in-up delay-150 hidden">
+            <div class="p-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div>
+                    <div id="selected-count" class="text-3xl font-extrabold text-blue-700 animate-count">0</div>
+                    <div class="text-xs text-gray-500">Selected Parcels</div>
+                </div>
+                <div>
+                    <div id="selected-area" class="text-3xl font-extrabold text-green-600 animate-count">0</div>
+                    <div class="text-xs text-gray-500">Total Area (sq m)</div>
+                </div>
+                <div>
+                    <div id="selected-avg-area" class="text-3xl font-extrabold text-cyan-600 animate-count">0</div>
+                    <div class="text-xs text-gray-500">Avg Area (sq m)</div>
+                </div>
+                <div>
+                    <div id="selected-owners" class="text-3xl font-extrabold text-yellow-500 animate-count">0</div>
+                    <div class="text-xs text-gray-500">Unique Owners</div>
+                </div>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <canvas id="selected-area-bar"></canvas>
+                <canvas id="selected-owner-pie"></canvas>
+            </div>
+        </div>
+
+        <!-- Animated Map Card -->
+        <div class="glass-card mb-6 animate-fade-in-up delay-300">
+            <div class="flex flex-col md:flex-row items-center justify-between p-4">
+                <div class="flex gap-2 mb-2 md:mb-0">
+                    <button id="exportMapBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded shadow transition">Export Map Image</button>
+                    <button id="drawSelectBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded shadow transition">Draw/Select</button>
+                    <label class="flex items-center ml-4 cursor-pointer">
+                        <input type="checkbox" id="showSelectedToggle" class="form-checkbox h-4 w-4 text-blue-600">
+                        <span class="ml-2 text-sm text-gray-700">Show Only Selected</span>
+                    </label>
+                </div>
+                <div class="flex gap-2 mb-4">
+                    <button id="printMapPdfBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1 px-3 rounded shadow transition">
+                        Print Map to PDF
+                    </button>
+                    <button id="print-map-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded shadow transition">
+                        Print Map
+                    </button>
+                    <button type="button" id="export-selected-csv-btn" class="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white font-semibold shadow transition-all duration-200 flex items-center gap-2 animate-bounce-once hidden">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                        Export Selected as CSV
+                    </button>
+                    <button type="button" id="export-selected-kml-btn" class="px-4 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white font-semibold shadow transition-all duration-200 flex items-center gap-2 animate-bounce-once hidden">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                        Export Selected as KML
+                    </button>
+                    <button type="button" id="save-db-btn" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow transition-all duration-200 flex items-center gap-2 animate-bounce-once" onclick="saveToDatabase()">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7"/><path stroke-linecap="round" stroke-linejoin="round" d="M16 3v4H8V3"/></svg>
+                        Save to Database
+                    </button>
+                </div>
+            </div>
+            <div class="p-0">
+                <div id="parcel-map" class="rounded-lg shadow-lg border border-blue-100 h-80 md:h-96 animate-fade-in-up"></div>
+            </div>
+        </div>
+
+        <!-- Data Preview Card -->
+        <div class="glass-card mb-6 animate-fade-in-up delay-400">
+            <div class="flex flex-col md:flex-row justify-between items-center px-6 pt-6">
+                <h2 class="text-xl font-bold text-blue-700 flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                    Land Parcel Data
+                </h2>
+                <!-- Advanced Filters -->
+                <form id="advanced-filters" class="flex flex-wrap gap-2 items-center mt-4 md:mt-0">
+                    <input type="text" id="filter-owner" placeholder="Owner" class="px-2 py-1 rounded border border-gray-300 text-sm" />
+                    <input type="text" id="filter-kitta" placeholder="Kitta Number" class="px-2 py-1 rounded border border-gray-300 text-sm" />
+                    <input type="number" id="filter-min-area" placeholder="Min Area" class="px-2 py-1 rounded border border-gray-300 text-sm w-24" />
+                    <input type="number" id="filter-max-area" placeholder="Max Area" class="px-2 py-1 rounded border border-gray-300 text-sm w-24" />
+                    <button type="button" id="clear-filters" class="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs">Clear</button>
+                </form>
+            </div>
+            <div class="p-6">
+                {% if preview_data.parcels %}
+                    <div class="overflow-x-auto rounded-lg shadow-inner animate-fade-in-up">
+                        <table class="min-w-full text-sm text-left text-gray-700">
+                            <thead class="bg-blue-100 text-blue-700">
+                                <tr>
+                                    <th class="px-3 py-2">#</th>
+                                    <th class="px-3 py-2">Kitta Number</th>
+                                    <th class="px-3 py-2">Owner Name</th>
+                                    <th class="px-3 py-2">Area (sq m)</th>
+                                    <th class="px-3 py-2">Area (ha)</th>
+                                    <th class="px-3 py-2">Geometry</th>
+                                    <th class="px-3 py-2">Center Coordinates</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for parcel in preview_data.parcels %}
+                                <tr data-feature-id="{{ forloop.counter0 }}" class="hover:bg-blue-50 transition-colors duration-200">
+                                    <td class="px-3 py-2 text-gray-400">{{ preview_data.pagination.start_idx|add:forloop.counter0 }}</td>
+                                    <td class="px-3 py-2 font-semibold text-blue-700">{{ parcel.kitta_number }}</td>
+                                    <td class="px-3 py-2">{{ parcel.owner_name }}</td>
+                                    <td class="px-3 py-2 text-green-600 font-bold">{{ parcel.area|floatformat:2 }}</td>
+                                    <td class="px-3 py-2 text-cyan-600">{{ parcel.area_hectares|floatformat:4 }}</td>
+                                    <td class="px-3 py-2">
+                                        <span class="inline-block px-2 py-1 rounded-full text-xs font-semibold {{ parcel.geometry_type|get_geometry_color }} animate-fade-in">{{ parcel.geometry_type }}</span>
+                                    </td>
+                                    <td class="px-3 py-2 text-xs text-gray-500">{{ parcel.center_point|format_coordinates }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if preview_data.pagination.total_pages > 1 %}
+                        <nav class="flex justify-center mt-4 animate-fade-in-up">
+                            <ul class="inline-flex items-center -space-x-px">
+                                {% if preview_data.pagination.has_previous %}
+                                    <li>
+                                        <a class="px-3 py-1 rounded-l-lg bg-white border border-gray-200 text-gray-500 hover:bg-blue-50" href="?page=1">«</a>
+                                    </li>
+                                    <li>
+                                        <a class="px-3 py-1 bg-white border border-gray-200 text-gray-500 hover:bg-blue-50" href="?page={{ preview_data.pagination.previous_page }}">‹</a>
+                                    </li>
+                                {% endif %}
+                                {% for page_num in preview_data.pagination.total_pages|add:"0"|make_list %}
+                                    {% if forloop.counter == preview_data.pagination.current_page %}
+                                        <li>
+                                            <span class="px-3 py-1 bg-blue-600 text-white rounded-lg">{{ forloop.counter }}</span>
+                                        </li>
+                                    {% elif forloop.counter <= preview_data.pagination.current_page|add:2 and forloop.counter >= preview_data.pagination.current_page|add:"-2" %}
+                                        <li>
+                                            <a class="px-3 py-1 bg-white border border-gray-200 text-gray-500 hover:bg-blue-50" href="?page={{ forloop.counter }}">{{ forloop.counter }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                {% if preview_data.pagination.has_next %}
+                                    <li>
+                                        <a class="px-3 py-1 bg-white border border-gray-200 text-gray-500 hover:bg-blue-50" href="?page={{ preview_data.pagination.next_page }}">›</a>
+                                    </li>
+                                    <li>
+                                        <a class="px-3 py-1 rounded-r-lg bg-white border border-gray-200 text-gray-500 hover:bg-blue-50" href="?page={{ preview_data.pagination.total_pages }}">»</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+                {% else %}
+                    <div class="flex flex-col items-center justify-center py-12 animate-fade-in-up">
+                        <svg class="w-16 h-16 text-gray-300 mb-4 animate-pulse" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v16h16V4H4zm4 4h8v8H8V8z"/></svg>
+                        <h5 class="text-gray-400 font-semibold">No land parcel data found</h5>
+                        <p class="text-gray-400">The KML file doesn't contain recognizable land parcel information.</p>
+                        <a href="{% url 'land_parser:upload' %}" class="mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition">Upload Different File</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- KML Content Preview -->
+        <div class="glass-card mb-6 animate-fade-in-up delay-500">
+            <div class="px-6 pt-6">
+                <h2 class="text-xl font-bold text-blue-700 flex items-center gap-2 mb-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/></svg>
+                    KML Content Preview
+                </h2>
+            </div>
+            <div class="px-6 pb-6">
+                <div class="bg-gray-50 rounded-lg p-4 overflow-x-auto max-h-72 animate-fade-in">
+                    <pre class="text-xs text-gray-600">{{ preview_data.kml_content }}</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="glass-card animate-fade-in-up delay-600">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 px-6 py-4">
+                <div class="flex gap-2">
+                    <a href="{% url 'land_parser:upload' %}" class="px-4 py-2 rounded-lg bg-white/80 hover:bg-blue-100 text-blue-700 font-semibold shadow transition-all duration-200 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                        Upload New File
+                    </a>
+                    <button type="button" class="px-4 py-2 rounded-lg bg-white/80 hover:bg-red-100 text-red-600 font-semibold shadow transition-all duration-200 flex items-center gap-2" onclick="clearSession()">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        Clear Session
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    {% if preview_data.total_count > 0 %}
+                        <form method="post" action="{% url 'land_parser:download-csv' %}" enctype="multipart/form-data" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" id="download-csv-btn" class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold shadow transition-all duration-200 flex items-center gap-2 animate-bounce-once">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                Download CSV
+                            </button>
+                        </form>
+                        <button type="button" id="export-selected-csv-btn" class="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white font-semibold shadow transition-all duration-200 flex items-center gap-2 animate-bounce-once hidden">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            Export Selected as CSV
+                        </button>
+                        <button type="button" id="export-selected-kml-btn" class="px-4 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white font-semibold shadow transition-all duration-200 flex items-center gap-2 animate-bounce-once hidden">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            Export Selected as KML
+                        </button>
+                        <button type="button" id="print-map-btn" class="px-4 py-2 rounded-lg bg-pink-500 hover:bg-pink-600 text-white font-semibold shadow transition-all duration-200 flex items-center gap-2 animate-bounce-once">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9v12h12V9"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V3h12v6"/></svg>
+                            Print Map
+                        </button>
+                        <button type="button" id="save-db-btn" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow transition-all duration-200 flex items-center gap-2 animate-bounce-once" onclick="saveToDatabase()">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7"/><path stroke-linecap="round" stroke-linejoin="round" d="M16 3v4H8V3"/></svg>
+                            Save to Database
+                        </button>
+                    {% else %}
+                        <button type="button" class="px-4 py-2 rounded-lg bg-green-200 text-white font-semibold shadow flex items-center gap-2 cursor-not-allowed" disabled>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            Download CSV
+                        </button>
+                        <button type="button" class="px-4 py-2 rounded-lg bg-yellow-200 text-white font-semibold shadow flex items-center gap-2 cursor-not-allowed" disabled>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            Export Selected as CSV
+                        </button>
+                        <button type="button" class="px-4 py-2 rounded-lg bg-purple-200 text-white font-semibold shadow flex items-center gap-2 cursor-not-allowed" disabled>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            Export Selected as KML
+                        </button>
+                        <button type="button" class="px-4 py-2 rounded-lg bg-pink-200 text-white font-semibold shadow flex items-center gap-2 cursor-not-allowed" disabled>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9v12h12V9"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V3h12v6"/></svg>
+                            Print Map
+                        </button>
+                        <button type="button" class="px-4 py-2 rounded-lg bg-blue-200 text-white font-semibold shadow flex items-center gap-2 cursor-not-allowed" disabled>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7"/><path stroke-linecap="round" stroke-linejoin="round" d="M16 3v4H8V3"/></svg>
+                            Save to Database
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tailwind glass card and animation styles -->
+<style>
+.glass-card {
+    @apply bg-white/70 backdrop-blur-lg rounded-2xl shadow-xl border border-blue-100 mb-6 transition-all duration-300;
+}
+.animate-fade-in {
+    animation: fadeIn 0.7s ease-in;
+}
+.animate-fade-in-up {
+    animation: fadeInUp 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.animate-bounce-once {
+    animation: bounce 0.7s 1;
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/dist/dom-to-image.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+let selectedFeatureIds = [];
+
+function updateTableRows(showOnlySelected) {
+    const rows = document.querySelectorAll('tr[data-feature-id]');
+    rows.forEach(row => {
+        const fid = row.getAttribute('data-feature-id');
+        if (showOnlySelected && !selectedFeatureIds.includes(fid)) {
+            row.style.display = 'none';
+        } else {
+            row.style.display = '';
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Leaflet Map Initialization ---
+    var geojsonData = (typeof {{ geojson_data|safe }} === 'object') ? {{ geojson_data|safe }} : JSON.parse('{{ geojson_data|escapejs }}');
+    var map = L.map('parcel-map');
+
+    // Add OpenStreetMap tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Style function for parcels
+    function parcelStyle(feature) {
+        var color = '#3388ff';
+        if (feature.properties.geometry_type === 'Polygon') color = '#28a745';
+        if (feature.properties.geometry_type === 'LineString') color = '#ffc107';
+        if (feature.properties.geometry_type === 'Point') color = '#0d6efd';
+        return {
+            color: color,
+            weight: feature.properties.geometry_type === 'LineString' ? 4 : 2,
+            fillColor: color,
+            fillOpacity: feature.properties.geometry_type === 'Polygon' ? 0.3 : 0.7,
+            radius: feature.properties.geometry_type === 'Point' ? 8 : undefined
+        };
+    }
+
+    // --- Custom Marker Icons by Area ---
+    function getMarkerIcon(area) {
+        if (area > 10000) {
+            return L.icon({iconUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/images/marker-icon-2x-green.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34]});
+        } else if (area > 5000) {
+            return L.icon({iconUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/images/marker-icon-2x-yellow.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34]});
+        } else {
+            return L.icon({iconUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/images/marker-icon-2x-red.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34]});
+        }
+    }
+
+    // Point to layer for points
+    function pointToLayer(feature, latlng) {
+        if (feature.properties.geometry_type === 'Point') {
+            return L.marker(latlng, {icon: getMarkerIcon(feature.properties.area)});
+        }
+        return L.circleMarker(latlng, parcelStyle(feature));
+    }
+
+    // Add GeoJSON layer
+    var parcelLayer = L.geoJSON(geojsonData, {
+        style: parcelStyle,
+        pointToLayer: pointToLayer,
+        onEachFeature: function (feature, layer) {
+            // Popup with parcel info
+            var props = feature.properties;
+            var popupHtml = `<strong>Kitta:</strong> ${props.kitta_number || 'N/A'}<br>` +
+                `<strong>Owner:</strong> ${props.owner_name || 'N/A'}<br>` +
+                `<strong>Area:</strong> ${props.area ? props.area.toFixed(2) + ' m²' : 'N/A'}`;
+            layer.bindPopup(popupHtml);
+        }
+    }).addTo(map);
+
+    // Fit map to parcels
+    if (parcelLayer.getLayers().length > 0) {
+        map.fitBounds(parcelLayer.getBounds(), {padding: [20, 20]});
+    } else {
+        map.setView([27.7172, 85.3240], 13); // Default to Kathmandu
+    }
+
+    // --- Map-table synchronization ---
+    var tableRows = document.querySelectorAll('tr[data-feature-id]');
+    var featureLayers = {};
+    parcelLayer.eachLayer(function(layer) {
+        var fid = layer.feature && layer.feature.properties && layer.feature.properties.featureId;
+        if (fid !== undefined) {
+            featureLayers[fid] = layer;
+        }
+    });
+    // Highlight style
+    function highlightLayer(layer) {
+        if (layer.setStyle) {
+            layer.setStyle({weight: 5, color: '#ff5733', fillOpacity: 0.5});
+        } else if (layer.setRadius) {
+            layer.setStyle({color: '#ff5733', fillColor: '#ff5733'});
+        }
+        if (layer.bringToFront) layer.bringToFront();
+    }
+    function resetLayer(layer) {
+        parcelLayer.resetStyle(layer);
+    }
+    // Table row hover
+    tableRows.forEach(function(row) {
+        row.addEventListener('mouseenter', function() {
+            var fid = row.getAttribute('data-feature-id');
+            var layer = featureLayers[fid];
+            if (layer) highlightLayer(layer);
+        });
+        row.addEventListener('mouseleave', function() {
+            var fid = row.getAttribute('data-feature-id');
+            var layer = featureLayers[fid];
+            if (layer) resetLayer(layer);
+        });
+        row.addEventListener('click', function() {
+            var fid = row.getAttribute('data-feature-id');
+            var layer = featureLayers[fid];
+            if (layer && layer.openPopup) layer.openPopup();
+        });
+    });
+    // Map feature hover
+    parcelLayer.eachLayer(function(layer) {
+        var fid = layer.feature && layer.feature.properties && layer.feature.properties.featureId;
+        if (fid === undefined) return;
+        layer.on('mouseover', function() {
+            var row = document.querySelector('tr[data-feature-id="' + fid + '"]');
+            if (row) row.classList.add('table-warning');
+            highlightLayer(layer);
+        });
+        layer.on('mouseout', function() {
+            var row = document.querySelector('tr[data-feature-id="' + fid + '"]');
+            if (row) row.classList.remove('table-warning');
+            resetLayer(layer);
+        });
+        layer.on('click', function() {
+            var row = document.querySelector('tr[data-feature-id="' + fid + '"]');
+            if (row) row.scrollIntoView({behavior: 'smooth', block: 'center'});
+        });
+    });
+
+    // --- CSV Download and Database Save Functions ---
+    
+    // Show loading state for button
+    function setButtonLoading(buttonId, isLoading, originalText) {
+        const button = document.getElementById(buttonId);
+        if (!button) return;
+        
+        if (isLoading) {
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+        } else {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+    }
+
+    // Show alert message
+    function showAlert(message, type = 'success') {
+        // Remove existing alerts
+        const existingAlerts = document.querySelectorAll('.alert');
+        existingAlerts.forEach(alert => alert.remove());
+        
+        // Create new alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Insert at top of content
+        const container = document.querySelector('.col-lg-10');
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+
+    // Download CSV function
+    window.downloadCSV = function() {
+        const button = document.getElementById('download-csv-btn');
+        const originalText = button.innerHTML;
+        
+        setButtonLoading('download-csv-btn', true, originalText);
+        
+        fetch('{% url "land_parser:download-csv" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.blob();
+            }
+            return response.json().then(data => {
+                throw new Error(data.error || 'Download failed');
+            });
+        })
+        .then(blob => {
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'land_parcels.csv';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            showAlert('CSV file downloaded successfully!', 'success');
+        })
+        .catch(error => {
+            console.error('Download error:', error);
+            showAlert(`Download failed: ${error.message}`, 'danger');
+        })
+        .finally(() => {
+            setButtonLoading('download-csv-btn', false, originalText);
+        });
+    };
+
+    // Save to database function
+    window.saveToDatabase = function() {
+        const button = document.getElementById('save-db-btn');
+        const originalText = button.innerHTML;
+        
+        setButtonLoading('save-db-btn', true, originalText);
+        
+        fetch('{% url "land_parser:save-to-db" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                let message = data.message;
+                if (data.details) {
+                    message += `<br><small class="text-muted">
+                        New: ${data.details.new_records} | 
+                        Updated: ${data.details.updated_records} | 
+                        Skipped: ${data.details.skipped_records} | 
+                        Total Area: ${data.details.total_area_hectares.toFixed(2)} ha
+                    </small>`;
+                }
+                if (data.warnings && data.warnings.length > 0) {
+                    message += `<br><small class="text-warning">
+                        Warnings: ${data.warnings.join(', ')}
+                    </small>`;
+                }
+                showAlert(message, 'success');
+            } else {
+                showAlert(`Save failed: ${data.message}`, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Save error:', error);
+            showAlert(`Save failed: ${error.message}`, 'danger');
+        })
+        .finally(() => {
+            setButtonLoading('save-db-btn', false, originalText);
+        });
+    };
+
+    // Clear session function
+    window.clearSession = function() {
+        if (!confirm('Are you sure you want to clear the uploaded KML data? This action cannot be undone.')) {
+            return;
+        }
+        
+        fetch('{% url "land_parser:clear-session" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Session cleared successfully!', 'success');
+                setTimeout(() => {
+                    window.location.href = '{% url "land_parser:upload" %}';
+                }, 1500);
+            } else {
+                showAlert(`Failed to clear session: ${data.error}`, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Clear session error:', error);
+            showAlert('Failed to clear session', 'danger');
+        });
+    };
+
+    // Add Draw Control
+    const drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+    const drawControl = new L.Control.Draw({
+        draw: {
+            polyline: false,
+            circle: false,
+            marker: false,
+            circlemarker: false
+        },
+        edit: { featureGroup: drawnItems }
+    });
+    let drawActive = false;
+    document.getElementById('drawSelectBtn').onclick = function() {
+        drawActive = !drawActive;
+        if (drawActive) {
+            map.addControl(drawControl);
+            this.classList.add('ring', 'ring-green-300');
+        } else {
+            map.removeControl(drawControl);
+            drawnItems.clearLayers();
+            selectedFeatureIds = [];
+            highlightSelectedFeatures([]);
+            updateTableRows(document.getElementById('showSelectedToggle').checked);
+            this.classList.remove('ring', 'ring-green-300');
+        }
+    };
+    map.on(L.Draw.Event.CREATED, function (e) {
+        drawnItems.clearLayers();
+        drawnItems.addLayer(e.layer);
+        selectFeaturesInShape(e.layer);
+    });
+    map.on(L.Draw.Event.DELETED, function () {
+        drawnItems.clearLayers();
+        selectedFeatureIds = [];
+        highlightSelectedFeatures([]);
+        updateTableRows(document.getElementById('showSelectedToggle').checked);
+    });
+    function selectFeaturesInShape(layer) {
+        selectedFeatureIds = [];
+        parcelLayer.eachLayer(function(l) {
+            if (layer.getBounds().contains(l.getBounds ? l.getBounds().getCenter() : l.getLatLng())) {
+                const fid = l.feature && l.feature.properties && l.feature.properties.featureId;
+                if (fid !== undefined) selectedFeatureIds.push(fid.toString());
+            }
+        });
+        highlightSelectedFeatures(selectedFeatureIds);
+        updateTableRows(document.getElementById('showSelectedToggle').checked);
+    }
+    function highlightSelectedFeatures(ids) {
+        parcelLayer.eachLayer(function(l) {
+            const fid = l.feature && l.feature.properties && l.feature.properties.featureId;
+            if (fid !== undefined) {
+                if (ids.includes(fid.toString())) {
+                    highlightLayer(l);
+                } else {
+                    resetLayer(l);
+                }
+            }
+        });
+    }
+    document.getElementById('showSelectedToggle').addEventListener('change', function() {
+        updateTableRows(this.checked);
+    });
+    // Export map as image
+    document.getElementById('exportMapBtn').onclick = function() {
+        domtoimage.toPng(document.getElementById('parcel-map')).then(function(dataUrl) {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = 'map_snapshot.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+    };
+
+    // --- Analytics for Selected Only ---
+    function updateSelectedAnalytics() {
+        const analyticsCard = document.getElementById('selected-analytics');
+        if (!selectedFeatureIds.length) {
+            analyticsCard.classList.add('hidden');
+            document.getElementById('export-selected-csv-btn').classList.add('hidden');
+            return;
+        }
+        analyticsCard.classList.remove('hidden');
+        document.getElementById('export-selected-csv-btn').classList.remove('hidden');
+        // Gather selected parcel data
+        const selectedParcels = [];
+        parcelLayer.eachLayer(function(l) {
+            const fid = l.feature && l.feature.properties && l.feature.properties.featureId;
+            if (fid !== undefined && selectedFeatureIds.includes(fid.toString())) {
+                selectedParcels.push(l.feature.properties);
+            }
+        });
+        // Stats
+        const total = selectedParcels.length;
+        const totalArea = selectedParcels.reduce((sum, p) => sum + (p.area || 0), 0);
+        const avgArea = total ? (totalArea / total) : 0;
+        const owners = [...new Set(selectedParcels.map(p => p.owner_name).filter(Boolean))];
+        document.getElementById('selected-count').textContent = total;
+        document.getElementById('selected-area').textContent = totalArea.toFixed(2);
+        document.getElementById('selected-avg-area').textContent = avgArea.toFixed(2);
+        document.getElementById('selected-owners').textContent = owners.length;
+        // Area bar chart
+        const areaLabels = selectedParcels.map(p => p.kitta_number || 'N/A');
+        const areaData = selectedParcels.map(p => p.area || 0);
+        if (window.selectedAreaBarChart) window.selectedAreaBarChart.destroy();
+        window.selectedAreaBarChart = new Chart(document.getElementById('selected-area-bar'), {
+            type: 'bar',
+            data: { labels: areaLabels, datasets: [{ label: 'Area (sq m)', data: areaData, backgroundColor: '#38bdf8' }] },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+        // Owner pie chart
+        const ownerCounts = {};
+        selectedParcels.forEach(p => { ownerCounts[p.owner_name || 'Unknown'] = (ownerCounts[p.owner_name || 'Unknown'] || 0) + 1; });
+        if (window.selectedOwnerPieChart) window.selectedOwnerPieChart.destroy();
+        window.selectedOwnerPieChart = new Chart(document.getElementById('selected-owner-pie'), {
+            type: 'pie',
+            data: { labels: Object.keys(ownerCounts), datasets: [{ data: Object.values(ownerCounts), backgroundColor: ['#fbbf24','#38bdf8','#34d399','#f87171','#a78bfa','#f472b6','#facc15'] }] },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+    // --- Export Selected as CSV ---
+    document.getElementById('export-selected-csv-btn').onclick = function() {
+        const selectedParcels = [];
+        parcelLayer.eachLayer(function(l) {
+            const fid = l.feature && l.feature.properties && l.feature.properties.featureId;
+            if (fid !== undefined && selectedFeatureIds.includes(fid.toString())) {
+                selectedParcels.push(l.feature.properties);
+            }
+        });
+        if (!selectedParcels.length) return;
+        const header = ['Kitta Number','Owner Name','Area (sq m)','Area (hectares)','Geometry Type','Center Coordinates'];
+        const rows = selectedParcels.map(p => [p.kitta_number, p.owner_name, p.area, p.area_hectares, p.geometry_type, (p.center_point||[]).join(',')]);
+        let csv = header.join(',') + '\n' + rows.map(r => r.join(',')).join('\n');
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'selected_parcels.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+    // --- Export Selected as KML ---
+    document.getElementById('export-selected-kml-btn').onclick = function() {
+        const selectedParcels = [];
+        parcelLayer.eachLayer(function(l) {
+            const fid = l.feature && l.feature.properties && l.feature.properties.featureId;
+            if (fid !== undefined && selectedFeatureIds.includes(fid.toString())) {
+                selectedParcels.push(l.feature.properties);
+            }
+        });
+        if (!selectedParcels.length) return;
+        // Build KML string
+        let kml = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document>`;
+        selectedParcels.forEach(p => {
+            kml += `<Placemark><name>${p.kitta_number || ''}</name><description>${p.owner_name || ''}</description>`;
+            if (p.geometry_type === 'Point' && p.center_point) {
+                kml += `<Point><coordinates>${(p.center_point||[]).join(',')}</coordinates></Point>`;
+            } else if (p.geometry_type === 'Polygon' && p.coordinates) {
+                kml += `<Polygon><outerBoundaryIs><LinearRing><coordinates>${(p.coordinates||[]).map(c=>c.join(',')).join(' ')}</coordinates></LinearRing></outerBoundaryIs></Polygon>`;
+            } else if (p.geometry_type === 'LineString' && p.coordinates) {
+                kml += `<LineString><coordinates>${(p.coordinates||[]).map(c=>c.join(',')).join(' ')}</coordinates></LineString>`;
+            }
+            kml += `</Placemark>`;
+        });
+        kml += `</Document></kml>`;
+        const blob = new Blob([kml], {type: 'application/vnd.google-earth.kml+xml'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'selected_parcels.kml';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+    // --- Print Map ---
+    document.getElementById('print-map-btn').onclick = function() {
+        domtoimage.toPng(document.getElementById('parcel-map')).then(function(dataUrl) {
+            var win = window.open('');
+            win.document.write('<img src="' + dataUrl + '" style="width:100%">');
+            win.print();
+            win.close();
+        });
+    };
+    // --- Advanced Filters ---
+    function filterTableRows() {
+        const owner = document.getElementById('filter-owner').value.toLowerCase();
+        const kitta = document.getElementById('filter-kitta').value.toLowerCase();
+        const minArea = parseFloat(document.getElementById('filter-min-area').value);
+        const maxArea = parseFloat(document.getElementById('filter-max-area').value);
+        document.querySelectorAll('tr[data-feature-id]').forEach(row => {
+            const tds = row.querySelectorAll('td');
+            const ownerVal = tds[2]?.textContent.toLowerCase() || '';
+            const kittaVal = tds[1]?.textContent.toLowerCase() || '';
+            const areaVal = parseFloat(tds[3]?.textContent) || 0;
+            let show = true;
+            if (owner && !ownerVal.includes(owner)) show = false;
+            if (kitta && !kittaVal.includes(kitta)) show = false;
+            if (!isNaN(minArea) && areaVal < minArea) show = false;
+            if (!isNaN(maxArea) && areaVal > maxArea) show = false;
+            row.style.display = show ? '' : 'none';
+        });
+    }
+    document.getElementById('filter-owner').addEventListener('input', filterTableRows);
+    document.getElementById('filter-kitta').addEventListener('input', filterTableRows);
+    document.getElementById('filter-min-area').addEventListener('input', filterTableRows);
+    document.getElementById('filter-max-area').addEventListener('input', filterTableRows);
+    document.getElementById('clear-filters').onclick = function() {
+        document.getElementById('filter-owner').value = '';
+        document.getElementById('filter-kitta').value = '';
+        document.getElementById('filter-min-area').value = '';
+        document.getElementById('filter-max-area').value = '';
+        filterTableRows();
+    };
+    // --- Update analytics on selection change ---
+    function updateSelectionUI() {
+        updateSelectedAnalytics();
+    }
+    // Patch selection triggers
+    document.getElementById('showSelectedToggle').addEventListener('change', function() {
+        updateTableRows(this.checked);
+        updateSelectionUI();
+    });
+    document.getElementById('printMapPdfBtn').addEventListener('click', function() {
+        var mapNode = document.getElementById('parcel-map');
+        domtoimage.toPng(mapNode)
+            .then(function (dataUrl) {
+                const { jsPDF } = window.jspdf;
+                const pdfWidth = mapNode.offsetWidth;
+                const pdfHeight = mapNode.offsetHeight;
+                const margin = 24;
+                const title = 'Land Parcel Map';
+                const dateStr = new Date().toLocaleDateString();
+                let filename = '';
+                var fileElem = document.getElementById('uploaded-filename');
+                if (fileElem) filename = fileElem.textContent.trim();
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'px',
+                    format: [pdfWidth + margin * 2, pdfHeight + 140]
+                });
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(22);
+                pdf.text(title, (pdfWidth + margin * 2) / 2, 40, { align: 'center' });
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(14);
+                pdf.text('Date: ' + dateStr, (pdfWidth + margin * 2) / 2, 65, { align: 'center' });
+                pdf.text('Prepared by: Utsab', (pdfWidth + margin * 2) / 2, 85, { align: 'center' });
+                let y = 105;
+                if (filename) {
+                    pdf.text('KML File: ' + filename, (pdfWidth + margin * 2) / 2, 105, { align: 'center' });
+                    y = 125;
+                }
+                pdf.addImage(dataUrl, 'PNG', margin, y, pdfWidth, pdfHeight);
+                pdf.save('map.pdf');
+            })
+            .catch(function (error) {
+                alert('Error generating PDF: ' + error);
+            });
+    });
+});
+</script>
+{% endblock %}

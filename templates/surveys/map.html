@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+
+{% block title %}Survey Map & Analytics{% endblock %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row min-h-[80vh] bg-gradient-to-br from-blue-50 to-blue-100 animate-fade-in">
+    <!-- Sidebar -->
+    <aside class="w-full md:w-1/4 bg-white/80 shadow-lg p-4 md:rounded-l-lg flex flex-col gap-4">
+        <h2 class="text-xl font-bold text-blue-700 mb-2 flex items-center gap-2">
+            <svg class="w-6 h-6 text-blue-500 animate-bounce" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Parcels & Filters
+        </h2>
+        <!-- Filters -->
+        <div class="mb-4">
+            <label class="block text-gray-700 font-semibold mb-1">Owner</label>
+            <input id="ownerFilter" type="text" class="w-full px-2 py-1 border rounded focus:ring-2 focus:ring-blue-300" placeholder="Filter by owner...">
+        </div>
+        <div class="mb-4">
+            <label class="block text-gray-700 font-semibold mb-1">Kitta Number</label>
+            <input id="kittaFilter" type="text" class="w-full px-2 py-1 border rounded focus:ring-2 focus:ring-blue-300" placeholder="Filter by kitta...">
+        </div>
+        <div class="mb-4">
+            <label class="block text-gray-700 font-semibold mb-1">Area (min m²)</label>
+            <input id="areaFilter" type="number" min="0" class="w-full px-2 py-1 border rounded focus:ring-2 focus:ring-blue-300" placeholder="Min area...">
+        </div>
+        <!-- Export Buttons -->
+        <div class="flex gap-2 mb-2">
+            <button id="exportSelectedBtn" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-2 rounded shadow transition">Export Selected CSV</button>
+            <button id="exportMapBtn" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-2 rounded shadow transition">Export Map Image</button>
+        </div>
+        <!-- Parcel List -->
+        <div class="flex-1 overflow-y-auto max-h-64">
+            <ul id="parcelList" class="divide-y divide-blue-100">
+                <!-- Parcel items injected by JS -->
+            </ul>
+        </div>
+    </aside>
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col gap-4 p-4">
+        <!-- Analytics Panel -->
+        <section class="bg-white/80 rounded-lg shadow-lg p-4 mb-4 animate-fade-in">
+            <h2 class="text-xl font-bold text-blue-700 mb-2 flex items-center gap-2">
+                <svg class="w-6 h-6 text-green-500 animate-pulse" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 17a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2h-6a2 2 0 00-2 2v10z"/></svg>
+                Analytics
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div class="bg-blue-100 rounded p-2 text-center">
+                    <div class="text-2xl font-bold" id="statTotal">0</div>
+                    <div class="text-xs text-blue-700">Total Parcels</div>
+                </div>
+                <div class="bg-green-100 rounded p-2 text-center">
+                    <div class="text-2xl font-bold" id="statArea">0</div>
+                    <div class="text-xs text-green-700">Total Area (m²)</div>
+                </div>
+                <div class="bg-yellow-100 rounded p-2 text-center">
+                    <div class="text-2xl font-bold" id="statAvg">0</div>
+                    <div class="text-xs text-yellow-700">Avg Area (m²)</div>
+                </div>
+                <div class="bg-purple-100 rounded p-2 text-center">
+                    <div class="text-2xl font-bold" id="statOwners">0</div>
+                    <div class="text-xs text-purple-700">Unique Owners</div>
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row gap-4">
+                <canvas id="areaChart" class="bg-white rounded shadow w-full md:w-1/2 h-48"></canvas>
+                <canvas id="ownerChart" class="bg-white rounded shadow w-full md:w-1/2 h-48"></canvas>
+            </div>
+        </section>
+        <!-- Map -->
+        <section class="bg-white/80 rounded-lg shadow-lg p-4 animate-fade-in">
+            <div id="map" class="w-full h-[500px] rounded"></div>
+        </section>
+    </main>
+</div>
+
+<!-- Leaflet & MarkerCluster & Draw CDN -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- dom-to-image for map export -->
+<script src="https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/dist/dom-to-image.min.js"></script>
+
+<script>
+const records = JSON.parse('{{ records|safe|escapejs }}');
+let selectedParcels = [];
+
+function getMarkerIcon(area) {
+    // Custom marker color by area size
+    if (area >= 10000) return new L.Icon.Default({iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png'});
+    if (area >= 5000) return new L.Icon.Default({iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png'});
+    if (area >= 1000) return new L.Icon.Default({iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png'});
+    if (area >= 500) return new L.Icon.Default({iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png'});
+    return new L.Icon.Default({iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png'});
+}
+
+function updateStats(filtered) {
+    document.getElementById('statTotal').textContent = filtered.length;
+    const totalArea = filtered.reduce((sum, r) => sum + (parseFloat(r.area_size) || 0), 0);
+    document.getElementById('statArea').textContent = totalArea.toFixed(2);
+    document.getElementById('statAvg').textContent = filtered.length ? (totalArea / filtered.length).toFixed(2) : 0;
+    const owners = new Set(filtered.map(r => r.owner_name));
+    document.getElementById('statOwners').textContent = owners.size;
+}
+
+function updateCharts(filtered) {
+    const areaBins = [0, 100, 500, 1000, 5000, 10000];
+    const areaLabels = ['<100', '100-500', '500-1k', '1k-5k', '5k-10k', '10k+'];
+    const areaCounts = [0,0,0,0,0,0];
+    filtered.forEach(r => {
+        const a = parseFloat(r.area_size) || 0;
+        if (a < 100) areaCounts[0]++;
+        else if (a < 500) areaCounts[1]++;
+        else if (a < 1000) areaCounts[2]++;
+        else if (a < 5000) areaCounts[3]++;
+        else if (a < 10000) areaCounts[4]++;
+        else areaCounts[5]++;
+    });
+    areaChart.data.datasets[0].data = areaCounts;
+    areaChart.update();
+    const ownerCounts = {};
+    filtered.forEach(r => {
+        if (!ownerCounts[r.owner_name]) ownerCounts[r.owner_name] = 0;
+        ownerCounts[r.owner_name]++;
+    });
+    ownerChart.data.labels = Object.keys(ownerCounts);
+    ownerChart.data.datasets[0].data = Object.values(ownerCounts);
+    ownerChart.update();
+}
+
+function filterRecords() {
+    const owner = document.getElementById('ownerFilter').value.toLowerCase();
+    const kitta = document.getElementById('kittaFilter').value.toLowerCase();
+    const area = parseFloat(document.getElementById('areaFilter').value) || 0;
+    return records.filter(r =>
+        (!owner || (r.owner_name && r.owner_name.toLowerCase().includes(owner))) &&
+        (!kitta || (r.kitta_number && r.kitta_number.toLowerCase().includes(kitta))) &&
+        ((parseFloat(r.area_size) || 0) >= area)
+    );
+}
+
+function renderParcelList(filtered) {
+    const ul = document.getElementById('parcelList');
+    ul.innerHTML = '';
+    filtered.forEach((r, i) => {
+        const li = document.createElement('li');
+        li.className = 'py-2 px-2 hover:bg-blue-50 cursor-pointer rounded flex flex-col gap-1';
+        li.innerHTML = `<span class="font-semibold text-blue-700">Kitta: ${r.kitta_number || '-'} </span>
+            <span class="text-xs text-gray-600">Owner: ${r.owner_name || '-'}</span>
+            <span class="text-xs text-gray-600">Area: ${r.area_size || '-'} m²</span>`;
+        li.onclick = () => {
+            if (window._markers && window._markers[i]) {
+                window._map.setView(window._markers[i].getLatLng(), 18, {animate:true});
+                window._markers[i].openPopup();
+            }
+        };
+        ul.appendChild(li);
+    });
+}
+
+function renderMap(filtered) {
+    if (window._map) window._map.remove();
+    const map = L.map('map').setView([27.7, 85.3], 8);
+    window._map = map;
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    const markers = L.markerClusterGroup();
+    window._markers = [];
+    filtered.forEach((r, i) => {
+        if (r.lat && r.lon) {
+            const area = parseFloat(r.area_size) || 0;
+            const icon = getMarkerIcon(area);
+            const marker = L.marker([parseFloat(r.lat), parseFloat(r.lon)], {icon});
+            marker.bindPopup(`<div class='text-blue-700 font-bold'>Kitta: ${r.kitta_number || '-'}<br>Owner: ${r.owner_name || '-'}<br>Area: ${r.area_size || '-'} m²</div>`);
+            markers.addLayer(marker);
+            window._markers[i] = marker;
+        }
+    });
+    map.addLayer(markers);
+    if (filtered.length) {
+        const bounds = L.latLngBounds(filtered.filter(r=>r.lat&&r.lon).map(r=>[parseFloat(r.lat), parseFloat(r.lon)]));
+        if (bounds.isValid()) map.fitBounds(bounds, {padding:[30,30]});
+    }
+    // --- Drawing ---
+    const drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+    const drawControl = new L.Control.Draw({
+        draw: {
+            polyline: false,
+            circle: false,
+            marker: false,
+            circlemarker: false
+        },
+        edit: { featureGroup: drawnItems }
+    });
+    map.addControl(drawControl);
+    map.on(L.Draw.Event.CREATED, function (e) {
+        drawnItems.clearLayers();
+        drawnItems.addLayer(e.layer);
+        selectParcelsInShape(e.layer, filtered);
+    });
+    map.on(L.Draw.Event.DELETED, function () {
+        drawnItems.clearLayers();
+        selectedParcels = [];
+        highlightSelectedMarkers([]);
+    });
+}
+
+function selectParcelsInShape(layer, filtered) {
+    selectedParcels = [];
+    let shape = layer instanceof L.Polygon || layer instanceof L.Rectangle ? layer : null;
+    if (!shape) return;
+    let selectedIdx = [];
+    filtered.forEach((r, i) => {
+        if (r.lat && r.lon) {
+            const latlng = L.latLng(parseFloat(r.lat), parseFloat(r.lon));
+            if (shape.getBounds().contains(latlng) && (layer instanceof L.Rectangle || layer.getLatLngs()[0].some(p=>latlng.equals(p)) || layer.contains && layer.contains(latlng) || L.Polygon.prototype.isPrototypeOf(layer) && layer.getLatLngs()[0].some(p=>latlng.equals(p)))) {
+                selectedParcels.push(r);
+                selectedIdx.push(i);
+            }
+        }
+    });
+    highlightSelectedMarkers(selectedIdx);
+}
+
+function highlightSelectedMarkers(selectedIdx) {
+    if (!window._markers) return;
+    window._markers.forEach((marker, i) => {
+        if (marker && marker._icon) {
+            marker._icon.style.filter = selectedIdx.includes(i) ? 'drop-shadow(0 0 8px #22d3ee) brightness(1.5)' : '';
+        }
+    });
+}
+
+// --- Export Selected as CSV ---
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('exportSelectedBtn').onclick = function() {
+        if (!selectedParcels.length) {
+            alert('No parcels selected! Draw a shape on the map to select parcels.');
+            return;
+        }
+        let csv = 'Kitta Number,Owner,Area,Lat,Lon\n';
+        selectedParcels.forEach(r => {
+            csv += `${r.kitta_number || ''},${r.owner_name || ''},${r.area_size || ''},${r.lat || ''},${r.lon || ''}\n`;
+        });
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'selected_parcels.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+    document.getElementById('exportMapBtn').onclick = function() {
+        domtoimage.toPng(document.getElementById('map')).then(function(dataUrl) {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = 'map_snapshot.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+    };
+});
+
+// --- Chart.js Setup ---
+let areaChart, ownerChart;
+document.addEventListener('DOMContentLoaded', function() {
+    areaChart = new Chart(document.getElementById('areaChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: ['<100', '100-500', '500-1k', '1k-5k', '5k-10k', '10k+'], datasets: [{ label: 'Parcels', data: [0,0,0,0,0,0], backgroundColor: 'rgba(59,130,246,0.5)' }] },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+    ownerChart = new Chart(document.getElementById('ownerChart').getContext('2d'), {
+        type: 'pie',
+        data: { labels: [], datasets: [{ label: 'Owners', data: [], backgroundColor: ['#60a5fa','#34d399','#fbbf24','#a78bfa','#f87171','#f472b6','#facc15','#38bdf8'] }] },
+        options: { responsive: true }
+    });
+    const filterInputs = ['ownerFilter','kittaFilter','areaFilter'];
+    filterInputs.forEach(id => document.getElementById(id).addEventListener('input', updateAll));
+    updateAll();
+});
+
+function updateAll() {
+    const filtered = filterRecords();
+    updateStats(filtered);
+    updateCharts(filtered);
+    renderParcelList(filtered);
+    renderMap(filtered);
+}
+</script>
+{% endblock %} 

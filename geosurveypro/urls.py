@@ -26,5 +26,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
     path('surveys/', include('surveys.urls')),
+    path('land-parser/', include('land_parser.urls')),
     path('', login_required(home_redirect), name='home'),
 ]

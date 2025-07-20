@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import csv_upload_view, csv_export_view, kml_upload_view, attachment_upload_view, attachment_delete_view, link_kml_boundary_to_survey, survey_search_view, kml_boundary_search_view, kml_export_view, dashboard_analytics_api, boundary_completeness_report, area_coverage_report, export_excel_report, user_activity_api, coverage_map_data, advanced_search_api, kml_network_link, kml_tour, pdf_report_view, SurveyRecordViewSet, CSVUploadAPIView, KMLUploadAPIView, export_kml_api, survey_search_api, boundary_search_api, spatial_query_api, google_earth_link_api, kml_export_google_earth_api, dashboard_stats_api, dashboard_coverage_api, survey_list_view, survey_add_view, map_view, survey_edit_view, survey_delete_view, kmlboundary_geojson, download_kml_csv, csv_to_kml_view, download_generated_kml, download_all_surveys_kml, dashboard_view
+from .views import csv_upload_view, csv_export_view, attachment_upload_view, attachment_delete_view, survey_search_view, dashboard_analytics_api, boundary_completeness_report, area_coverage_report, export_excel_report, user_activity_api, coverage_map_data, advanced_search_api, pdf_report_view, SurveyRecordViewSet, CSVUploadAPIView, export_kml_api, survey_search_api, boundary_search_api, spatial_query_api, google_earth_link_api, kml_export_google_earth_api, dashboard_stats_api, dashboard_coverage_api, survey_list_view, survey_add_view, map_view, survey_edit_view, survey_delete_view, csv_to_kml_view, download_generated_kml, download_all_surveys_kml, dashboard_view
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -10,19 +10,13 @@ urlpatterns = [
     path('dashboard/', dashboard_view, name='dashboard'),
     path('upload-csv/', csv_upload_view, name='csv_upload'),
     path('export-csv/', csv_export_view, name='csv_export'),
-    path('upload-kml/', kml_upload_view, name='kml_upload'),
-    path('download-kml-csv/', download_kml_csv, name='download_kml_csv'),
     path('upload-attachment/', attachment_upload_view, name='attachment_upload'),
     path('delete-attachment/<int:pk>/', attachment_delete_view, name='attachment_delete'),
-    path('link-boundary/<int:boundary_id>/<int:survey_id>/', link_kml_boundary_to_survey, name='link_kml_boundary'),
     path('map-view/', map_view, name='map_view'),
 ]
 
 urlpatterns += [
     path('search/', survey_search_view, name='survey_search'),
-    path('kml-search/', kml_boundary_search_view, name='kml_boundary_search'),
-    path('export-kml/', kml_export_view, name='kml_export_batch'),
-    path('export-kml/<int:survey_id>/', kml_export_view, name='kml_export'),
 ]
 
 urlpatterns += [
@@ -42,11 +36,6 @@ urlpatterns += [
 ]
 
 urlpatterns += [
-    path('kml-network-link/', kml_network_link, name='kml_network_link'),
-    path('kml-tour/', kml_tour, name='kml_tour'),
-]
-
-urlpatterns += [
     path('pdf-report/', pdf_report_view, name='pdf_report_batch'),
     path('pdf-report/<int:survey_id>/', pdf_report_view, name='pdf_report'),
 ]
@@ -56,7 +45,6 @@ urlpatterns += router.urls
 urlpatterns += [
     # File Upload API
     path('api/v1/surveys/upload-csv/', CSVUploadAPIView.as_view(), name='api_upload_csv'),
-    path('api/v1/surveys/upload-kml/', KMLUploadAPIView.as_view(), name='api_upload_kml'),
     path('api/v1/surveys/export-kml/', export_kml_api, name='api_export_kml'),
 
     # Search API
@@ -82,10 +70,6 @@ urlpatterns += [
 urlpatterns += [
     path('edit/<int:pk>/', survey_edit_view, name='survey_edit'),
     path('delete/<int:pk>/', survey_delete_view, name='survey_delete'),
-]
-
-urlpatterns += [
-    path('api/kmlboundary-geojson/', kmlboundary_geojson, name='kmlboundary_geojson'),
 ]
 
 urlpatterns += [

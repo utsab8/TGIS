@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-{% load widget_tweaks %}
 {% block content %}
 <div class="min-h-[80vh] flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-100 animate-fade-in">
   <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 mx-2">
@@ -21,23 +20,23 @@
       <div class="space-y-4">
         <div>
           {{ form.full_name.label_tag }}
-          {{ form.full_name|add_class:'w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-400 focus:outline-none transition' }}
+          {{ form.full_name }}
         </div>
         <div>
           {{ form.phone.label_tag }}
-          {{ form.phone|add_class:'w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-400 focus:outline-none transition' }}
+          {{ form.phone }}
         </div>
         <div>
           {{ form.email.label_tag }}
-          {{ form.email|add_class:'w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-400 focus:outline-none transition' }}
+          {{ form.email }}
         </div>
         <div>
           {{ form.password1.label_tag }}
-          {{ form.password1|add_class:'w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-400 focus:outline-none transition' }}
+          {{ form.password1 }}
         </div>
         <div>
           {{ form.password2.label_tag }}
-          {{ form.password2|add_class:'w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-400 focus:outline-none transition' }}
+          {{ form.password2 }}
         </div>
       </div>
       <button type="submit" class="w-full py-2 px-4 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700 transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-400">Register</button>

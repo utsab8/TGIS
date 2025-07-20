@@ -1,0 +1,302 @@
+{% extends 'land_parser/base.html' %}
+
+{% block title %}Help & Documentation{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow-lg rounded-lg p-6 fade-in">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">
+            <i class="bi bi-question-circle text-blue-600 mr-3"></i>
+            Land Parser Help & Documentation
+        </h1>
+        <p class="text-gray-600">Complete guide to using the KML Land Parser feature</p>
+    </div>
+
+    <!-- Quick Start Guide -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b-2 border-blue-200 pb-2">
+            <i class="bi bi-lightning text-yellow-500 mr-2"></i>
+            Quick Start Guide
+        </h2>
+        
+        <div class="grid md:grid-cols-3 gap-6">
+            <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
+                <h3 class="font-semibold text-blue-800 mb-2">1. Upload KML File</h3>
+                <p class="text-sm text-blue-700">Drag and drop or click to upload your KML file containing land parcel data.</p>
+            </div>
+            
+            <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-400">
+                <h3 class="font-semibold text-green-800 mb-2">2. Preview Data</h3>
+                <p class="text-sm text-green-700">Review parsed land parcels in the interactive table and map view.</p>
+            </div>
+            
+            <div class="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-400">
+                <h3 class="font-semibold text-purple-800 mb-2">3. Export & Save</h3>
+                <p class="text-sm text-purple-700">Download as CSV or save to database for further analysis.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supported KML Formats -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b-2 border-blue-200 pb-2">
+            <i class="bi bi-file-earmark-text text-green-500 mr-2"></i>
+            Supported KML Formats
+        </h2>
+        
+        <div class="bg-gray-50 p-4 rounded-lg">
+            <h3 class="font-semibold text-gray-800 mb-3">Geometry Types Supported:</h3>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <h4 class="font-medium text-gray-700 mb-2">✅ Fully Supported:</h4>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li><i class="bi bi-check-circle text-green-500 mr-2"></i>Polygon (Land parcels)</li>
+                        <li><i class="bi bi-check-circle text-green-500 mr-2"></i>Point (Property markers)</li>
+                        <li><i class="bi bi-check-circle text-green-500 mr-2"></i>LineString (Boundaries)</li>
+                        <li><i class="bi bi-check-circle text-green-500 mr-2"></i>MultiGeometry (Complex parcels)</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-700 mb-2">⚠️ Limited Support:</h4>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li><i class="bi bi-exclamation-triangle text-yellow-500 mr-2"></i>3D Polygons (height ignored)</li>
+                        <li><i class="bi bi-exclamation-triangle text-yellow-500 mr-2"></i>Curved geometries (simplified)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KML Structure Requirements -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b-2 border-blue-200 pb-2">
+            <i class="bi bi-diagram-3 text-purple-500 mr-2"></i>
+            KML Structure Requirements
+        </h2>
+        
+        <div class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400 mb-4">
+            <h3 class="font-semibold text-yellow-800 mb-2">Required Structure:</h3>
+            <pre class="text-sm text-yellow-700 bg-yellow-100 p-3 rounded overflow-x-auto">
+&lt;kml xmlns="http://www.opengis.net/kml/2.2"&gt;
+  &lt;Document&gt;
+    &lt;Placemark&gt;
+      &lt;name&gt;KITTA-123&lt;/name&gt;
+      &lt;description&gt;Owner: John Smith&lt;/description&gt;
+      &lt;Polygon&gt;
+        &lt;outerBoundaryIs&gt;
+          &lt;LinearRing&gt;
+            &lt;coordinates&gt;
+              85.3240,27.7172,0 85.3245,27.7172,0 
+              85.3245,27.7177,0 85.3240,27.7177,0 
+              85.3240,27.7172,0
+            &lt;/coordinates&gt;
+          &lt;/LinearRing&gt;
+        &lt;/outerBoundaryIs&gt;
+      &lt;/Polygon&gt;
+    &lt;/Placemark&gt;
+  &lt;/Document&gt;
+&lt;/kml&gt;</pre>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <div>
+                <h4 class="font-semibold text-gray-800 mb-3">Data Extraction:</h4>
+                <ul class="text-sm text-gray-600 space-y-2">
+                    <li><strong>Kitta Number:</strong> Extracted from &lt;name&gt; or &lt;description&gt; using pattern "kitta: 123"</li>
+                    <li><strong>Owner Name:</strong> Extracted from &lt;name&gt; or &lt;description&gt; using pattern "owner: John Smith"</li>
+                    <li><strong>Area:</strong> Automatically calculated from polygon coordinates</li>
+                    <li><strong>Coordinates:</strong> Parsed from &lt;coordinates&gt; element</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-semibold text-gray-800 mb-3">Coordinate Format:</h4>
+                <ul class="text-sm text-gray-600 space-y-2">
+                    <li><strong>Format:</strong> longitude,latitude,altitude</li>
+                    <li><strong>Separator:</strong> Spaces between coordinate pairs</li>
+                    <li><strong>Example:</strong> 85.3240,27.7172,0 85.3245,27.7172,0</li>
+                    <li><strong>Range:</strong> Longitude: -180 to 180, Latitude: -90 to 90</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step-by-Step Instructions -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b-2 border-blue-200 pb-2">
+            <i class="bi bi-list-ol text-blue-500 mr-2"></i>
+            Step-by-Step Instructions
+        </h2>
+        
+        <div class="space-y-6">
+            <div class="border-l-4 border-blue-400 pl-4">
+                <h3 class="font-semibold text-gray-800 mb-2">Step 1: Prepare Your KML File</h3>
+                <ul class="text-sm text-gray-600 space-y-1 ml-4">
+                    <li>• Ensure your KML file contains &lt;Placemark&gt; elements</li>
+                    <li>• Each Placemark should have geometry (Polygon, Point, etc.)</li>
+                    <li>• Include kitta numbers and owner names in name/description</li>
+                    <li>• Verify coordinate format is correct</li>
+                </ul>
+            </div>
+            
+            <div class="border-l-4 border-green-400 pl-4">
+                <h3 class="font-semibold text-gray-800 mb-2">Step 2: Upload and Parse</h3>
+                <ul class="text-sm text-gray-600 space-y-1 ml-4">
+                    <li>• Navigate to the Land Parser upload page</li>
+                    <li>• Drag and drop your KML file or click to browse</li>
+                    <li>• Wait for parsing to complete (progress indicator shown)</li>
+                    <li>• Review parsing results and any warnings</li>
+                </ul>
+            </div>
+            
+            <div class="border-l-4 border-purple-400 pl-4">
+                <h3 class="font-semibold text-gray-800 mb-2">Step 3: Preview and Validate</h3>
+                <ul class="text-sm text-gray-600 space-y-1 ml-4">
+                    <li>• Check the data table for parsed parcels</li>
+                    <li>• Use the interactive map to verify locations</li>
+                    <li>• Review summary statistics</li>
+                    <li>• Fix any issues before proceeding</li>
+                </ul>
+            </div>
+            
+            <div class="border-l-4 border-orange-400 pl-4">
+                <h3 class="font-semibold text-gray-800 mb-2">Step 4: Export or Save</h3>
+                <ul class="text-sm text-gray-600 space-y-1 ml-4">
+                    <li>• Download as CSV for external analysis</li>
+                    <li>• Save to database for integration with TGIS</li>
+                    <li>• Use the data in other Geo Survey Pro features</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Troubleshooting -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b-2 border-blue-200 pb-2">
+            <i class="bi bi-tools text-red-500 mr-2"></i>
+            Troubleshooting
+        </h2>
+        
+        <div class="space-y-4">
+            <div class="bg-red-50 p-4 rounded-lg border-l-4 border-red-400">
+                <h3 class="font-semibold text-red-800 mb-2">Common Issues and Solutions:</h3>
+                
+                <div class="space-y-3">
+                    <div>
+                        <h4 class="font-medium text-red-700">❌ "No Placemark elements found"</h4>
+                        <p class="text-sm text-red-600">Solution: Ensure your KML contains &lt;Placemark&gt; elements with geometry.</p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium text-red-700">❌ "Invalid coordinate format"</h4>
+                        <p class="text-sm text-red-600">Solution: Check coordinate format is "lon,lat,alt" with spaces between pairs.</p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium text-red-700">❌ "No valid land parcels found"</h4>
+                        <p class="text-sm text-red-600">Solution: Verify Placemarks have valid geometry and coordinates.</p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium text-red-700">❌ "File too large"</h4>
+                        <p class="text-sm text-red-600">Solution: Split large KML files or use the optimized parser for large datasets.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Best Practices -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b-2 border-blue-200 pb-2">
+            <i class="bi bi-star text-yellow-500 mr-2"></i>
+            Best Practices
+        </h2>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <div>
+                <h3 class="font-semibold text-gray-800 mb-3">File Preparation:</h3>
+                <ul class="text-sm text-gray-600 space-y-2">
+                    <li>• Use consistent naming conventions for kitta numbers</li>
+                    <li>• Include owner information in descriptions</li>
+                    <li>• Validate coordinates before uploading</li>
+                    <li>• Keep file sizes reasonable (&lt; 10MB for best performance)</li>
+                    <li>• Use standard KML 2.2 format</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3 class="font-semibold text-gray-800 mb-3">Data Quality:</h3>
+                <ul class="text-sm text-gray-600 space-y-2">
+                    <li>• Ensure polygons are closed (first = last coordinate)</li>
+                    <li>• Use appropriate coordinate precision (6-8 decimal places)</li>
+                    <li>• Include meaningful descriptions</li>
+                    <li>• Test with small files first</li>
+                    <li>• Backup original KML files</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Tips -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b-2 border-blue-200 pb-2">
+            <i class="bi bi-speedometer2 text-green-500 mr-2"></i>
+            Performance Tips
+        </h2>
+        
+        <div class="bg-green-50 p-4 rounded-lg">
+            <div class="grid md:grid-cols-3 gap-4">
+                <div>
+                    <h4 class="font-semibold text-green-800 mb-2">Small Files (&lt; 50 parcels)</h4>
+                    <p class="text-sm text-green-700">Sequential processing, instant results</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-green-800 mb-2">Medium Files (50-500 parcels)</h4>
+                    <p class="text-sm text-green-700">Parallel processing, optimized performance</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-green-800 mb-2">Large Files (&gt; 500 parcels)</h4>
+                    <p class="text-sm text-green-700">Caching enabled, progress indicators</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Support -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b-2 border-blue-200 pb-2">
+            <i class="bi bi-headset text-blue-500 mr-2"></i>
+            Need Help?
+        </h2>
+        
+        <div class="bg-blue-50 p-4 rounded-lg">
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-semibold text-blue-800 mb-2">Documentation:</h3>
+                    <ul class="text-sm text-blue-700 space-y-1">
+                        <li>• <a href="#" class="underline">KML Format Specification</a></li>
+                        <li>• <a href="#" class="underline">Sample KML Files</a></li>
+                        <li>• <a href="#" class="underline">API Documentation</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-blue-800 mb-2">Contact Support:</h3>
+                    <ul class="text-sm text-blue-700 space-y-1">
+                        <li>• Email: support@geosurveypro.com</li>
+                        <li>• Phone: +1-555-123-4567</li>
+                        <li>• Live Chat: Available during business hours</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back to Upload -->
+    <div class="text-center">
+        <a href="{% url 'land_parser:upload' %}" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+            <i class="bi bi-upload mr-2"></i>
+            Start Uploading KML Files
+        </a>
+    </div>
+</div>
+{% endblock %} 

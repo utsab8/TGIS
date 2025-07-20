@@ -1,0 +1,1 @@
+# Template tags package for land_parser app 

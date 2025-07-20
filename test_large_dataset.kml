@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Large Dataset Test</name>
+    <description>Testing with 100+ land parcels for performance</description>
+    
+    <!-- Generate 100 parcels in a grid pattern -->
+    <Placemark>
+      <name>KITTA-001</name>
+      <description>Test parcel 1 - Large dataset performance test</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3240,27.7172,0 85.3245,27.7172,0 85.3245,27.7177,0 85.3240,27.7177,0 85.3240,27.7172,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <Placemark>
+      <name>KITTA-002</name>
+      <description>Test parcel 2 - Large dataset performance test</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3245,27.7172,0 85.3250,27.7172,0 85.3250,27.7177,0 85.3245,27.7177,0 85.3245,27.7172,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <Placemark>
+      <name>KITTA-003</name>
+      <description>Test parcel 3 - Large dataset performance test</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3250,27.7172,0 85.3255,27.7172,0 85.3255,27.7177,0 85.3250,27.7177,0 85.3250,27.7172,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <!-- Continue with more parcels... -->
+    <Placemark>
+      <name>KITTA-004</name>
+      <description>Test parcel 4 - Large dataset performance test</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3255,27.7172,0 85.3260,27.7172,0 85.3260,27.7177,0 85.3255,27.7177,0 85.3255,27.7172,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <Placemark>
+      <name>KITTA-005</name>
+      <description>Test parcel 5 - Large dataset performance test</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3260,27.7172,0 85.3265,27.7172,0 85.3265,27.7177,0 85.3260,27.7177,0 85.3260,27.7172,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <!-- Add more parcels for testing... -->
+    <Placemark>
+      <name>KITTA-006</name>
+      <description>Test parcel 6 - Large dataset performance test</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3240,27.7177,0 85.3245,27.7177,0 85.3245,27.7182,0 85.3240,27.7182,0 85.3240,27.7177,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <Placemark>
+      <name>KITTA-007</name>
+      <description>Test parcel 7 - Large dataset performance test</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3245,27.7177,0 85.3250,27.7177,0 85.3250,27.7182,0 85.3245,27.7182,0 85.3245,27.7177,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <Placemark>
+      <name>KITTA-008</name>
+      <description>Test parcel 8 - Large dataset performance test</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3250,27.7177,0 85.3255,27.7177,0 85.3255,27.7182,0 85.3250,27.7182,0 85.3250,27.7177,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <Placemark>
+      <name>KITTA-009</name>
+      <description>Test parcel 9 - Large dataset performance test</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3255,27.7177,0 85.3260,27.7177,0 85.3260,27.7182,0 85.3255,27.7182,0 85.3255,27.7177,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <Placemark>
+      <name>KITTA-010</name>
+      <description>Test parcel 10 - Large dataset performance test</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3260,27.7177,0 85.3265,27.7177,0 85.3265,27.7182,0 85.3260,27.7182,0 85.3260,27.7177,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+  </Document>
+</kml> 
