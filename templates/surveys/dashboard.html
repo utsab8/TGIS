@@ -1,0 +1,1029 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Poppins', sans-serif !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    /* Override base template styles */
+    .max-w-7xl {
+        max-width: none !important;
+        padding: 0 !important;
+    }
+
+    /* Advanced Animations */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(60px) scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-100px) rotate(-5deg);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0) rotate(0deg);
+        }
+    }
+
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(100px) rotate(5deg);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0) rotate(0deg);
+        }
+    }
+
+    @keyframes pulse {
+        0%, 100% { 
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
+        }
+        50% { 
+            transform: scale(1.05);
+            box-shadow: 0 0 0 20px rgba(102, 126, 234, 0);
+        }
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        25% { transform: translateY(-10px) rotate(1deg); }
+        50% { transform: translateY(-20px) rotate(0deg); }
+        75% { transform: translateY(-10px) rotate(-1deg); }
+    }
+
+    @keyframes shimmer {
+        0% { background-position: -200px 0; }
+        100% { background-position: calc(200px + 100%) 0; }
+    }
+
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    @keyframes bounce {
+        0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+        40%, 43% { transform: translate3d(0, -30px, 0); }
+        70% { transform: translate3d(0, -15px, 0); }
+        90% { transform: translate3d(0, -4px, 0); }
+    }
+
+    /* Dashboard Container */
+    .dashboard-container {
+        min-height: 100vh;
+        padding: 20px;
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    }
+
+    .dashboard-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+            radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+        animation: gradientShift 15s ease infinite;
+        z-index: -1;
+    }
+
+    /* Header Section */
+    .dashboard-header {
+        text-align: center;
+        margin-bottom: 40px;
+        animation: fadeInUp 1s ease-out;
+    }
+
+    .dashboard-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #fff 0%, #f0f0f0 50%, #fff 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+        text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+        position: relative;
+    }
+
+    .dashboard-title::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100px;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, #fff, transparent);
+        border-radius: 2px;
+    }
+
+    .dashboard-subtitle {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 300;
+        letter-spacing: 1px;
+    }
+
+    /* Stats Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+    }
+
+    .stats-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border-radius: 25px;
+        padding: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        cursor: pointer;
+    }
+
+    .stats-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        transition: left 0.5s;
+    }
+
+    .stats-card:hover::before {
+        left: 100%;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-10px) scale(1.02);
+        box-shadow: 
+            0 20px 40px rgba(0, 0, 0, 0.1),
+            0 0 0 1px rgba(255, 255, 255, 0.3);
+    }
+
+    .stats-card:nth-child(1) { animation: slideInLeft 0.8s ease-out 0.1s both; }
+    .stats-card:nth-child(2) { animation: slideInLeft 0.8s ease-out 0.2s both; }
+    .stats-card:nth-child(3) { animation: slideInLeft 0.8s ease-out 0.3s both; }
+    .stats-card:nth-child(4) { animation: slideInLeft 0.8s ease-out 0.4s both; }
+
+    .stats-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        color: white;
+        margin-bottom: 20px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stats-icon::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+        border-radius: 20px;
+    }
+
+    .stats-card:nth-child(1) .stats-icon {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .stats-card:nth-child(2) .stats-icon {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .stats-card:nth-child(3) .stats-icon {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .stats-card:nth-child(4) .stats-icon {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .stats-number {
+        font-size: 3rem;
+        font-weight: 800;
+        color: white;
+        margin-bottom: 8px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        animation: pulse 2s infinite;
+    }
+
+    .stats-label {
+        font-size: 1.1rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+        margin-bottom: 15px;
+    }
+
+    .progress-container {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        height: 8px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
+        border-radius: 10px;
+        transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .progress-bar::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+        animation: shimmer 2s infinite;
+    }
+
+    /* Main Content Grid */
+    .main-content {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+        margin-bottom: 40px;
+    }
+
+    /* Map Container */
+    .map-container {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border-radius: 25px;
+        padding: 25px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        animation: slideInRight 0.8s ease-out 0.5s both;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .map-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+        pointer-events: none;
+    }
+
+    .map-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+    .map-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .map-controls {
+        display: flex;
+        gap: 10px;
+    }
+
+    .map-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+    }
+
+    .map-btn.primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .map-btn.secondary {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .map-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    #dashboard-map {
+        height: 500px;
+        width: 100%;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Sidebar */
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+    }
+
+    /* Chart Container */
+    .chart-container {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border-radius: 25px;
+        padding: 25px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        animation: slideInRight 0.8s ease-out 0.6s both;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .chart-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .chart-canvas {
+        position: relative;
+        height: 250px;
+    }
+
+    /* Recent Activity */
+    .recent-activity {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(20px);
+        border-radius: 25px;
+        padding: 25px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        animation: slideInRight 0.8s ease-out 0.7s both;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .activity-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .activity-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .activity-item {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 20px;
+        border-left: 4px solid #667eea;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .activity-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .activity-item:hover::before {
+        opacity: 1;
+    }
+
+    .activity-item:hover {
+        transform: translateX(8px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .activity-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 10px;
+    }
+
+    .activity-kitta {
+        font-weight: 700;
+        color: white;
+        font-size: 1.1rem;
+    }
+
+    .activity-date {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.1);
+        padding: 4px 8px;
+        border-radius: 8px;
+    }
+
+    .activity-owner {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+
+    .activity-type {
+        display: inline-block;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    /* Floating Action Button */
+    .fab {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 1000;
+        cursor: pointer;
+        border: none;
+        animation: float 4s ease-in-out infinite;
+        text-decoration: none;
+    }
+
+    .fab:hover {
+        transform: scale(1.1) rotate(5deg);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    .fab::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .fab:hover::before {
+        opacity: 1;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+        .main-content {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-title {
+            font-size: 2.5rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .map-controls {
+            flex-direction: column;
+        }
+    }
+
+    /* Loading Animation */
+    .loading {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200px 100%;
+        animation: shimmer 1.5s infinite;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+
+    /* Map Enhancements */
+    .custom-marker {
+        background: transparent;
+        border: none;
+    }
+
+    .marker-pin {
+        width: 30px;
+        height: 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 14px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        animation: bounce 1s infinite;
+    }
+
+    .marker-pin i {
+        transform: rotate(45deg);
+    }
+
+    .marker-cluster {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        color: white;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .marker-popup, .boundary-popup {
+        min-width: 200px;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .marker-popup h3, .boundary-popup h3 {
+        color: #667eea;
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+
+    .marker-popup p, .boundary-popup p {
+        margin: 5px 0;
+        color: #333;
+    }
+
+    .map-tiles {
+        filter: brightness(0.9) contrast(1.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">
+            <i class="fas fa-chart-line"></i>
+            Geo Survey Dashboard
+        </h1>
+        <p class="dashboard-subtitle">Real-time insights and analytics for your survey data</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stats-card">
+            <div class="stats-icon">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <div class="stats-number">{{ total_surveys }}</div>
+            <div class="stats-label">Total Surveys</div>
+            <div class="progress-container">
+                <div class="progress-bar" style="width: {{ surveys_progress }}%"></div>
+            </div>
+        </div>
+
+        <div class="stats-card">
+            <div class="stats-icon">
+                <i class="fas fa-draw-polygon"></i>
+            </div>
+            <div class="stats-number">{{ total_boundaries }}</div>
+            <div class="stats-label">KML Boundaries</div>
+            <div class="progress-container">
+                <div class="progress-bar" style="width: {{ boundaries_progress }}%"></div>
+            </div>
+        </div>
+
+        <div class="stats-card">
+            <div class="stats-icon">
+                <i class="fas fa-ruler-combined"></i>
+            </div>
+            <div class="stats-number">{{ total_area|floatformat:0 }}</div>
+            <div class="stats-label">Total Area (m²)</div>
+            <div class="progress-container">
+                <div class="progress-bar" style="width: {{ area_progress }}%"></div>
+            </div>
+        </div>
+
+        <div class="stats-card">
+            <div class="stats-icon">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <div class="stats-number">{{ land_type_stats|length }}</div>
+            <div class="stats-label">Land Types</div>
+            <div class="progress-container">
+                <div class="progress-bar" style="width: {{ land_types_progress }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Map Section -->
+        <div class="map-container">
+            <div class="map-header">
+                <h2 class="map-title">
+                    <i class="fas fa-globe-americas"></i>
+                    Interactive Survey Map
+                </h2>
+                <div class="map-controls">
+                    <button id="refresh-map" class="map-btn primary">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                    <button id="export-kml" class="map-btn secondary">
+                        <i class="fas fa-download"></i>
+                        Export KML
+                    </button>
+                </div>
+            </div>
+            <div id="dashboard-map"></div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Chart -->
+            <div class="chart-container">
+                <h3 class="chart-title">
+                    <i class="fas fa-chart-pie"></i>
+                    Land Type Distribution
+                </h3>
+                <div class="chart-canvas">
+                    <canvas id="landTypeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="recent-activity">
+                <h3 class="activity-title">
+                    <i class="fas fa-clock"></i>
+                    Recent Surveys
+                </h3>
+                <div class="activity-list">
+                    {% for survey in recent_surveys %}
+                    <div class="activity-item">
+                        <div class="activity-header">
+                            <div class="activity-kitta">{{ survey.kitta_number|default:"N/A" }}</div>
+                            <div class="activity-date">{{ survey.created_at|date:"M d" }}</div>
+                        </div>
+                        <div class="activity-owner">{{ survey.owner_name|default:"Unknown Owner" }}</div>
+                        <div class="activity-type">{{ survey.land_type|default:"Unknown" }}</div>
+                    </div>
+                    {% empty %}
+                    <div class="activity-item">
+                        <div class="activity-header">
+                            <div class="activity-kitta">No Data</div>
+                        </div>
+                        <div class="activity-owner">No surveys available yet</div>
+                        <div class="activity-type">Add your first survey</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Action Button -->
+    <a href="{% url 'survey_add' %}" class="fab">
+        <i class="fas fa-plus"></i>
+    </a>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+<script>
+// Initialize map with enhanced styling
+var map = L.map('dashboard-map', {
+    zoomControl: false,
+    attributionControl: false
+}).setView([27.7, 85.3], 8);
+
+// Add custom tile layers
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    className: 'map-tiles'
+}).addTo(map);
+
+var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri'
+});
+
+// Add layer control
+var baseMaps = {
+    "Street": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+    "Satellite": satellite
+};
+
+L.control.layers(baseMaps, {}, {
+    position: 'topright',
+    collapsed: false
+}).addTo(map);
+
+// Custom marker cluster group
+var markers = L.markerClusterGroup({
+    chunkedLoading: true,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    maxClusterRadius: 50,
+    iconCreateFunction: function(cluster) {
+        var count = cluster.getChildCount();
+        var size = count > 100 ? 'large' : count > 10 ? 'medium' : 'small';
+        return L.divIcon({
+            html: '<div><span>' + count + '</span></div>',
+            className: 'marker-cluster marker-cluster-' + size,
+            iconSize: L.point(40, 40)
+        });
+    }
+});
+
+// Survey points data
+var surveyPoints = {{ survey_points|safe }};
+var boundaryData = {{ boundary_data|safe }};
+
+// Add survey points with enhanced styling
+surveyPoints.forEach(function(point) {
+    var marker = L.marker([point.lat, point.lon], {
+        icon: L.divIcon({
+            className: 'custom-marker',
+            html: '<div class="marker-pin"><i class="fas fa-map-marker-alt"></i></div>',
+            iconSize: [30, 30],
+            iconAnchor: [15, 30]
+        })
+    });
+    
+    var popupContent = `
+        <div class="marker-popup">
+            <h3>${point.kitta_number}</h3>
+            <p><strong>Owner:</strong> ${point.owner_name}</p>
+            <p><strong>Land Type:</strong> ${point.land_type}</p>
+            <p><strong>Area:</strong> ${point.area_size} m²</p>
+            <p><strong>Date:</strong> ${point.created_at}</p>
+        </div>
+    `;
+    
+    marker.bindPopup(popupContent);
+    markers.addLayer(marker);
+});
+
+map.addLayer(markers);
+
+// Add boundary polygons with enhanced styling
+boundaryData.forEach(function(boundary) {
+    if (boundary.coordinates && boundary.coordinates.length > 2) {
+        var coords = boundary.coordinates.map(function(coord) {
+            return [coord[1], coord[0]];
+        });
+        
+        var polygon = L.polygon(coords, {
+            color: '#667eea',
+            fillColor: '#667eea',
+            fillOpacity: 0.3,
+            weight: 3,
+            opacity: 0.8
+        });
+        
+        polygon.bindPopup(`
+            <div class="boundary-popup">
+                <h3>${boundary.kitta_number}</h3>
+                <p><strong>Area:</strong> ${boundary.area_sqm} m²</p>
+            </div>
+        `);
+        
+        polygon.addTo(map);
+    }
+});
+
+// Enhanced Chart.js configuration
+var landTypeData = {{ land_type_stats|safe }};
+var ctx = document.getElementById('landTypeChart').getContext('2d');
+
+var landTypeChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: Object.keys(landTypeData),
+        datasets: [{
+            data: Object.values(landTypeData).map(item => item.count),
+            backgroundColor: [
+                '#667eea', '#764ba2', '#f093fb', '#f5576c',
+                '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'
+            ],
+            borderWidth: 3,
+            borderColor: 'rgba(255, 255, 255, 0.8)',
+            hoverBorderWidth: 5,
+            hoverBorderColor: 'rgba(255, 255, 255, 1)'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 20,
+                    usePointStyle: true,
+                    font: {
+                        family: 'Poppins',
+                        size: 12
+                    },
+                    color: 'rgba(255, 255, 255, 0.9)'
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleColor: 'white',
+                bodyColor: 'white',
+                borderColor: '#667eea',
+                borderWidth: 1,
+                cornerRadius: 10,
+                displayColors: true
+            }
+        },
+        animation: {
+            animateRotate: true,
+            animateScale: true,
+            duration: 2000,
+            easing: 'easeOutQuart'
+        },
+        cutout: '60%'
+    }
+});
+
+// Interactive features
+document.getElementById('refresh-map').addEventListener('click', function() {
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+    setTimeout(() => {
+        location.reload();
+    }, 1000);
+});
+
+document.getElementById('export-kml').addEventListener('click', function() {
+    this.innerHTML = '<i class="fas fa-download"></i> Exporting...';
+    setTimeout(() => {
+        window.open('{% url "download_all_surveys_kml" %}', '_blank');
+        this.innerHTML = '<i class="fas fa-download"></i> Export KML';
+    }, 1000);
+});
+
+// Add hover effects to stats cards
+document.querySelectorAll('.stats-card').forEach(function(card, index) {
+    card.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-15px) scale(1.05)';
+    });
+    
+    card.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0) scale(1)';
+    });
+    
+    // Add click animation
+    card.addEventListener('click', function() {
+        this.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            this.style.transform = 'scale(1)';
+        }, 150);
+    });
+});
+
+// Auto-refresh data every 60 seconds
+setInterval(function() {
+    console.log('Auto-refresh triggered');
+}, 60000);
+
+// Add smooth scrolling and parallax effects
+window.addEventListener('scroll', function() {
+    var scrolled = window.pageYOffset;
+    var parallax = document.querySelector('.dashboard-container');
+    var speed = scrolled * 0.3;
+    parallax.style.transform = 'translateY(' + speed + 'px)';
+});
+
+// Add loading animation for data
+function showLoading(element) {
+    element.classList.add('loading');
+}
+
+function hideLoading(element) {
+    element.classList.remove('loading');
+}
+
+// Initialize tooltips and enhance UX
+document.addEventListener('DOMContentLoaded', function() {
+    // Add smooth transitions to all interactive elements
+    const interactiveElements = document.querySelectorAll('button, a, .stats-card, .activity-item');
+    interactiveElements.forEach(el => {
+        el.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    });
+});
+</script>
+{% endblock %} 

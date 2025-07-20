@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-7xl mx-auto mt-8 animate-fade-in">
+  <h2 class="text-2xl font-bold mb-6 text-gray-800">Survey Map <span class="text-base font-normal text-gray-500">(Interactive Features)</span></h2>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-measure/dist/leaflet-measure.css" />
+  <style>
+    #map { height: 500px; width: 100%; border-radius: 1rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    #info-panel { position: absolute; top: 90px; right: 40px; z-index: 1000; background: #fff; padding: 16px; border-radius: 10px; min-width: 220px; box-shadow: 0 2px 8px rgba(0,0,0,0.13); }
+    #legend { background: white; padding: 8px 16px; border-radius: 6px; line-height: 1.5; }
+    .highlight { border: 2px solid gold !important; box-shadow: 0 0 10px gold !important; }
+  </style>
+  <div class="mb-4 p-4 bg-blue-50 rounded-lg flex flex-wrap gap-4 items-center shadow">
+    <form id="search-form" class="flex flex-wrap gap-2 items-center w-full md:w-auto">
+      <input type="text" id="kitta-search" placeholder="Search by Kitta Number" class="px-3 py-2 rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition w-48" />
+      <input type="text" id="coord-search" placeholder="Lat, Lon" class="px-3 py-2 rounded border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none transition w-40" />
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition font-semibold">Search</button>
+      <button type="button" id="export-selected" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition font-semibold">Export Selected to Google Earth Pro</button>
+    </form>
+    <div class="flex gap-4 items-center ml-4">
+      <label class="flex items-center gap-1 text-gray-700"><input type="checkbox" id="toggle-points" checked class="accent-blue-600"> Show Points</label>
+      <label class="flex items-center gap-1 text-gray-700"><input type="checkbox" id="toggle-polygons" checked class="accent-blue-600"> Show Polygons</label>
+    </div>
+  </div>
+  <div class="relative">
+    <div id="map"></div>
+    <div id="info-panel" style="display:none;"></div>
+  </div>
+  <p class="mt-6 text-center">
+    <a href="{% url 'kml_export_batch' %}" target="_blank" class="text-blue-600 hover:underline font-medium">Download All as KML (Google Earth Pro)</a>
+  </p>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+  <script src="https://unpkg.com/leaflet-measure/dist/leaflet-measure.js"></script>
+  <script>
+    var map = L.map('map').setView([27.7, 85.3], 8);
+    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles © Esri'
+    });
+    var terrain = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      maxZoom: 17,
+      attribution: '© OpenTopoMap contributors'
+    });
+    var baseMaps = {
+      "OpenStreetMap": osm,
+      "Satellite": satellite,
+      "Terrain": terrain
+    };
+    L.control.layers(baseMaps).addTo(map);
+
+    // --- Marker Cluster Group for CSV Points ---
+    var markers = L.markerClusterGroup();
+    var surveyPoints = [
+      {lat: 27.7, lon: 85.3, title: 'Plot 1', owner: 'Owner A', kitta: '123', id: 1},
+      {lat: 27.8, lon: 85.32, title: 'Plot 2', owner: 'Owner B', kitta: '124', id: 2}
+    ];
+    var pointLayerGroup = L.layerGroup();
+    var customIcon = L.icon({
+      iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+    });
+    var pointMarkers = {};
+    surveyPoints.forEach(function(point) {
+      var marker = L.marker([point.lat, point.lon], {icon: customIcon});
+      marker.bindPopup('<b>' + point.title + '</b><br>Owner: ' + point.owner + '<br>Kitta: ' + point.kitta);
+      marker.on('click', function() {
+        showInfoPanel('<b>' + point.title + '</b><br>Owner: ' + point.owner + '<br>Kitta: ' + point.kitta + '<br>Lat: ' + point.lat + '<br>Lon: ' + point.lon);
+      });
+      marker._surveyId = point.id;
+      pointMarkers[point.id] = marker;
+      markers.addLayer(marker);
+      pointLayerGroup.addLayer(marker);
+    });
+    map.addLayer(markers);
+
+    // --- KML Polygon Rendering ---
+    var polygonLayerGroup = L.layerGroup();
+    map.addLayer(polygonLayerGroup);
+
+    function highlightPolygonsByKitta(kitta) {
+      polygonLayerGroup.clearLayers();
+      if (!kitta) return;
+      fetch('/surveys/api/kmlboundary-geojson/?kitta_number=' + encodeURIComponent(kitta))
+        .then(res => res.json())
+        .then(data => {
+          L.geoJSON(data, {
+            style: {color: 'red', fillOpacity: 0.3},
+            onEachFeature: function (feature, layer) {
+              layer.bindPopup('KML Polygon<br>Kitta: ' + (feature.properties.kitta_number || ''));
+              layer.setStyle({weight: 4});
+              polygonLayerGroup.addLayer(layer);
+            }
+          });
+        });
+    }
+
+    // --- Layer Toggles ---
+    document.getElementById('toggle-points').addEventListener('change', function(e) {
+      if (e.target.checked) map.addLayer(markers);
+      else map.removeLayer(markers);
+    });
+    document.getElementById('toggle-polygons').addEventListener('change', function(e) {
+      if (e.target.checked) map.addLayer(polygonLayerGroup);
+      else map.removeLayer(polygonLayerGroup);
+    });
+
+    // --- Search and Highlight ---
+    document.getElementById('search-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var kitta = document.getElementById('kitta-search').value.trim();
+      var coord = document.getElementById('coord-search').value.trim();
+      // Clear highlights
+      Object.values(pointMarkers).forEach(function(marker) {
+        marker.setZIndexOffset(0);
+        marker.setIcon(customIcon);
+      });
+      polygonLayerGroup.clearLayers();
+      // Kitta search
+      if (kitta) {
+        Object.values(pointMarkers).forEach(function(marker) {
+          if (marker.getPopup().getContent().includes(kitta)) {
+            marker.setZIndexOffset(1000);
+            marker.setIcon(L.icon({iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-red.png', iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34]}));
+            marker.openPopup();
+          }
+        });
+        highlightPolygonsByKitta(kitta);
+      }
+      // Coordinate search
+      if (coord) {
+        var parts = coord.split(',');
+        if (parts.length === 2) {
+          var lat = parseFloat(parts[0]);
+          var lon = parseFloat(parts[1]);
+          if (!isNaN(lat) && !isNaN(lon)) {
+            map.setView([lat, lon], 15);
+          }
+        }
+      }
+    });
+
+    // --- Export Selected to Google Earth Pro ---
+    document.getElementById('export-selected').addEventListener('click', function() {
+      var kitta = document.getElementById('kitta-search').value.trim();
+      if (kitta) {
+        // Example: redirect to KML export for selected kitta (implement backend as needed)
+        window.open('/surveys/export-kml/?kitta_number=' + encodeURIComponent(kitta), '_blank');
+      } else {
+        alert('Enter a Kitta number to export selection.');
+      }
+    });
+
+    // --- Info Panel ---
+    function showInfoPanel(html) {
+      var panel = document.getElementById('info-panel');
+      panel.innerHTML = html;
+      panel.style.display = 'block';
+    }
+    map.on('click', function() {
+      document.getElementById('info-panel').style.display = 'none';
+    });
+
+    // --- Map Legend ---
+    var legend = L.control({position: 'bottomright'});
+    legend.onAdd = function(map) {
+      var div = L.DomUtil.create('div', 'info legend');
+      div.id = 'legend';
+      div.innerHTML = '<b>Legend</b><br>' +
+        '<i style="background: #3388ff; width: 12px; height: 12px; display: inline-block;"></i> Survey Point<br>' +
+        '<i style="background: red; width: 12px; height: 12px; display: inline-block;"></i> KML Polygon';
+      return div;
+    };
+    legend.addTo(map);
+
+    // --- Measurement Tools ---
+    L.control.measure({
+      primaryLengthUnit: 'meters',
+      primaryAreaUnit: 'sqmeters',
+      activeColor: '#db4a29',
+      completedColor: '#9b2d14'
+    }).addTo(map);
+
+    // --- Coordinate System Conversion Example ---
+    function toWGS84(lat, lon) {
+      // Example: returns as-is (Leaflet uses WGS84 by default)
+      return [lat, lon];
+    }
+  </script>
+</div>
+{% endblock %}

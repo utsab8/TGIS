@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-6xl mx-auto mt-8">
+  <h2 class="text-2xl font-bold mb-6 text-gray-800">Survey List</h2>
+  <div class="mb-4">
+    <a href="{% url 'download_all_surveys_kml' %}" class="inline-block px-5 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition">Download All as KML</a>
+  </div>
+  <div class="overflow-x-auto rounded-lg shadow-lg bg-white animate-fade-in">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-blue-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Kitta Number</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Owner Name</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Latitude</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Longitude</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Land Type</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Area Size</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Data Source</th>
+          <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-100">
+        {% for record in records %}
+        <tr class="hover:bg-blue-50 transition duration-150 ease-in-out">
+          <td class="px-4 py-2">{{ record.kitta_number }}</td>
+          <td class="px-4 py-2">{{ record.owner_name }}</td>
+          <td class="px-4 py-2">{{ record.lat }}</td>
+          <td class="px-4 py-2">{{ record.lon }}</td>
+          <td class="px-4 py-2">{{ record.land_type }}</td>
+          <td class="px-4 py-2">{{ record.area_size }}</td>
+          <td class="px-4 py-2">{{ record.data_source }}</td>
+          <td class="px-4 py-2 text-center">
+            <a href="{% url 'survey_edit' record.pk %}" class="inline-block px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition mr-2">Edit</a>
+            <a href="{% url 'survey_delete' record.pk %}" class="inline-block px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition">Delete</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="px-4 py-6 text-center text-gray-400">No surveys found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

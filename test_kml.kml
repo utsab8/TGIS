@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+    <Document>
+        <name>Comprehensive Test KML</name>
+        <description>Test KML file with multiple features for validation testing</description>
+        
+        <!-- Point 1: Simple point -->
+        <Placemark>
+            <name>Test Point 1</name>
+            <description>Simple test point</description>
+            <Point>
+                <coordinates>85.3,27.7,0</coordinates>
+            </Point>
+        </Placemark>
+        
+        <!-- Point 2: Point with extended data -->
+        <Placemark>
+            <name>Test Point with Data</name>
+            <description>Point with extended data for testing</description>
+            <ExtendedData>
+                <Data name="Owner Name">
+                    <value>John Doe</value>
+                </Data>
+                <Data name="Address">
+                    <value>123 Test Street</value>
+                </Data>
+                <Data name="Land Type">
+                    <value>residential</value>
+                </Data>
+                <Data name="Area Size (sq m)">
+                    <value>100</value>
+                </Data>
+            </ExtendedData>
+            <Point>
+                <coordinates>85.4,27.8,0</coordinates>
+            </Point>
+        </Placemark>
+        
+        <!-- Polygon: Simple polygon -->
+        <Placemark>
+            <name>Test Polygon</name>
+            <description>Test polygon area</description>
+            <Polygon>
+                <outerBoundaryIs>
+                    <LinearRing>
+                        <coordinates>
+                            85.3,27.7,0
+                            85.4,27.7,0
+                            85.4,27.8,0
+                            85.3,27.8,0
+                            85.3,27.7,0
+                        </coordinates>
+                    </LinearRing>
+                </outerBoundaryIs>
+            </Polygon>
+        </Placemark>
+        
+        <!-- LineString: Simple line -->
+        <Placemark>
+            <name>Test Line</name>
+            <description>Test line feature</description>
+            <LineString>
+                <coordinates>
+                    85.3,27.7,0
+                    85.4,27.8,0
+                    85.5,27.9,0
+                </coordinates>
+            </LineString>
+        </Placemark>
+    </Document>
+</kml>

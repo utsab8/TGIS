@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GeoSurveyPro</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 1s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .navbar-anim:hover { transform: scale(1.05) rotate(-2deg); transition: 0.2s; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-md sticky top-0 z-50 fade-in">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="/" class="text-2xl font-extrabold text-blue-600 navbar-anim">GeoSurveyPro</a>
+                <a href="/surveys/dashboard/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Dashboard</a>
+                <a href="/surveys/upload-csv/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Upload CSV</a>
+                <a href="/surveys/upload-kml/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Upload KML</a>
+                <a href="/surveys/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Survey List</a>
+                <a href="/surveys/search/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Search</a>
+                <a href="/surveys/map-view/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Map View</a>
+                <a href="/surveys/pdf-report/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">PDF Report</a>
+            </div>
+            <div class="flex items-center space-x-2">
+                {% if user.is_authenticated %}
+                    <span class="text-gray-600 mr-2">Hi, {{ user.username }}</span>
+                    <a href="/accounts/logout/" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow navbar-anim">Logout</a>
+                {% else %}
+                    <a href="/accounts/login/" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded shadow navbar-anim">Login</a>
+                    <a href="/accounts/register/" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded shadow navbar-anim">Register</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+    <div class="max-w-7xl mx-auto px-4 py-6 fade-in">
+        {% if messages %}
+            <div class="space-y-2 mb-4">
+                {% for message in messages %}
+                    <div class="p-3 rounded shadow text-white fade-in {% if message.tags == 'error' %}bg-red-500{% elif message.tags == 'success' %}bg-green-500{% else %}bg-blue-500{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

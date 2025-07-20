@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex items-center justify-center min-h-[60vh] animate-fade-in">
+  <div class="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
+    <h2 class="text-2xl font-bold text-red-600 mb-4">Delete Survey</h2>
+    <p class="mb-6 text-gray-700">Are you sure you want to delete the survey for <strong>{{ survey.kitta_number }}</strong> ({{ survey.owner_name }})?</p>
+    <form method="post" class="flex flex-col gap-4">
+      {% csrf_token %}
+      <button type="submit" class="w-full py-2 px-4 bg-red-600 text-white font-semibold rounded-lg shadow hover:bg-red-700 transition transform hover:scale-105">Yes, delete</button>
+      <a href="{% url 'survey_list' %}" class="w-full py-2 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg shadow hover:bg-gray-300 transition transform hover:scale-105">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}
