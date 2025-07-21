@@ -1,0 +1,488 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+    <Document id="1">
+        <Style id="4">
+            <IconStyle id="5">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="6">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="7">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="10">
+            <IconStyle id="11">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="12">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="13">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="16">
+            <IconStyle id="17">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="18">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="19">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="22">
+            <IconStyle id="23">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="24">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="25">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="28">
+            <IconStyle id="29">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="30">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="31">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="34">
+            <IconStyle id="35">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="36">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="37">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="40">
+            <IconStyle id="41">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="42">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="43">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="46">
+            <IconStyle id="47">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="48">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="49">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="52">
+            <IconStyle id="53">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="54">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="55">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="58">
+            <IconStyle id="59">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="60">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="61">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="64">
+            <IconStyle id="65">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="66">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="67">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="70">
+            <IconStyle id="71">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="72">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="73">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="76">
+            <IconStyle id="77">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="78">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="79">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="82">
+            <IconStyle id="83">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="84">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="85">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="88">
+            <IconStyle id="89">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="90">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="91">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="94">
+            <IconStyle id="95">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="96">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="97">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="100">
+            <IconStyle id="101">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="102">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="103">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="106">
+            <IconStyle id="107">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="108">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="109">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="112">
+            <IconStyle id="113">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="114">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="115">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="118">
+            <IconStyle id="119">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="120">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="121">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Style id="124">
+            <IconStyle id="125">
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+                <heading>0</heading>
+                <Icon id="126">
+                    <href>http://maps.google.com/mapfiles/kml/paddle/wht-circle.png</href>
+                </Icon>
+            </IconStyle>
+            <LabelStyle id="127">
+                <color>ff0000ff</color>
+                <colorMode>normal</colorMode>
+                <scale>1</scale>
+            </LabelStyle>
+        </Style>
+        <Placemark id="3">
+            <name>KML_1_11 - Residential Zone A</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#4</styleUrl>
+            <Point id="2">
+                <coordinates>85.3245,27.717,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="9">
+            <name>KML_1_11_1 - Commercial Zone B</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#10</styleUrl>
+            <Point id="8">
+                <coordinates>85.3252,27.7187,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="15">
+            <name>KML_1_11_2 - Agricultural Zone C</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#16</styleUrl>
+            <Point id="14">
+                <coordinates>85.3244,27.7152,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="21">
+            <name>KML_1_11_3 - Industrial Zone D</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#22</styleUrl>
+            <Point id="20">
+                <coordinates>85.3269,27.7172,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="27">
+            <name>KML_1_11_4 - Mixed Use Zone E</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#28</styleUrl>
+            <Point id="26">
+                <coordinates>85.3247,27.7192,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="33">
+            <name>KML_1_11_5 - Plot KTM-001 Boundary</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#34</styleUrl>
+            <Point id="32">
+                <coordinates>85.32396,27.71716,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="39">
+            <name>KML_1_11_6 - Plot KTM-002 Boundary</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#40</styleUrl>
+            <Point id="38">
+                <coordinates>85.32496,27.71796,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="45">
+            <name>KML_1_11_7 - Survey Control Point 1</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#46</styleUrl>
+            <Point id="44">
+                <coordinates>85.325,27.7175,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="51">
+            <name>KML_1_11_8 - Survey Control Point 2</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#52</styleUrl>
+            <Point id="50">
+                <coordinates>85.326,27.7185,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="57">
+            <name>KML_1_11_9 - Bagmati River Section</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#58</styleUrl>
+            <Point id="56">
+                <coordinates>85.3242,27.7126,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="63">
+            <name>KML_1_11_10 - Ring Road Section</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#64</styleUrl>
+            <Point id="62">
+                <coordinates>85.321,27.714,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="69">
+            <name>KML_1_11_10_1 - Ring Road Section</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#70</styleUrl>
+            <Point id="68">
+                <coordinates>85.321,27.714,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="75">
+            <name>KML_1_11_9_1 - Bagmati River Section</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#76</styleUrl>
+            <Point id="74">
+                <coordinates>85.3242,27.7126,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="81">
+            <name>KML_1_11_8_1 - Survey Control Point 2</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#82</styleUrl>
+            <Point id="80">
+                <coordinates>85.326,27.7185,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="87">
+            <name>KML_1_11_7_1 - Survey Control Point 1</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#88</styleUrl>
+            <Point id="86">
+                <coordinates>85.325,27.7175,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="93">
+            <name>KML_1_11_6_1 - Plot KTM-002 Boundary</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#94</styleUrl>
+            <Point id="92">
+                <coordinates>85.32496,27.71796,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="99">
+            <name>KML_1_11_5_1 - Plot KTM-001 Boundary</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#100</styleUrl>
+            <Point id="98">
+                <coordinates>85.32396,27.71716,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="105">
+            <name>KML_1_11_4_1 - Mixed Use Zone E</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#106</styleUrl>
+            <Point id="104">
+                <coordinates>85.3247,27.7192,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="111">
+            <name>KML_1_11_3_1 - Industrial Zone D</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#112</styleUrl>
+            <Point id="110">
+                <coordinates>85.3269,27.7172,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="117">
+            <name>KML_1_11_2_1 - Agricultural Zone C</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#118</styleUrl>
+            <Point id="116">
+                <coordinates>85.3244,27.7152,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="123">
+            <name>KML_1_11_1_1 - Commercial Zone B</name>
+            <description>&lt;b&gt;Land Type:&lt;/b&gt; other&lt;br&gt;&lt;b&gt;Area:&lt;/b&gt; 0.00 sq m&lt;br&gt;&lt;b&gt;Address:&lt;/b&gt; -&lt;br&gt;&lt;b&gt;Remarks:&lt;/b&gt; -</description>
+            <styleUrl>#124</styleUrl>
+            <Point id="122">
+                <coordinates>85.3252,27.7187,0.0</coordinates>
+            </Point>
+        </Placemark>
+    </Document>
+</kml>

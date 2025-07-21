@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-lg mx-auto mt-10 bg-white rounded-xl shadow-lg p-8 animate-fade-in">
+  <h2 class="text-2xl font-bold mb-6 text-gray-800">Upload KML File</h2>
+  <form method="post" enctype="multipart/form-data" class="space-y-6">
+    {% csrf_token %}
+    <div class="space-y-4">
+      {{ form.as_p|safe }}
+    </div>
+    <button type="submit" class="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition transform hover:scale-105">Upload</button>
+  </form>
+  {% if csv_available %}
+    <p class="mt-6 text-center">
+      <a href="{% url 'download_kml_csv' %}" class="text-green-600 hover:underline font-medium">Download extracted KML data as CSV</a>
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

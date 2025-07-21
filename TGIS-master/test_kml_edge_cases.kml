@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Edge Cases Test KML</name>
+    <description>Testing various KML structures and edge cases</description>
+    
+    <!-- Test 1: Normal polygon with complete data -->
+    <Placemark>
+      <name>KITTA-001</name>
+      <description>Complete data parcel</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3240,27.7172,0 85.3245,27.7172,0 85.3245,27.7177,0 85.3240,27.7177,0 85.3240,27.7172,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <!-- Test 2: Missing kitta number -->
+    <Placemark>
+      <name></name>
+      <description>Missing kitta number</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3250,27.7180,0 85.3255,27.7180,0 85.3255,27.7185,0 85.3250,27.7185,0 85.3250,27.7180,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <!-- Test 3: Point geometry -->
+    <Placemark>
+      <name>KITTA-003</name>
+      <description>Point geometry test</description>
+      <Point>
+        <coordinates>85.3260,27.7190,0</coordinates>
+      </Point>
+    </Placemark>
+    
+    <!-- Test 4: LineString geometry -->
+    <Placemark>
+      <name>KITTA-004</name>
+      <description>LineString geometry test</description>
+      <LineString>
+        <coordinates>
+          85.3270,27.7200,0 85.3275,27.7205,0 85.3280,27.7210,0
+        </coordinates>
+      </LineString>
+    </Placemark>
+    
+    <!-- Test 5: Malformed coordinates -->
+    <Placemark>
+      <name>KITTA-005</name>
+      <description>Malformed coordinates</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              invalid,coordinates,here 85.3290,27.7220,0 85.3295,27.7225,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <!-- Test 6: Empty coordinates -->
+    <Placemark>
+      <name>KITTA-006</name>
+      <description>Empty coordinates</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates></coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <!-- Test 7: MultiGeometry -->
+    <Placemark>
+      <name>KITTA-007</name>
+      <description>MultiGeometry test</description>
+      <MultiGeometry>
+        <Polygon>
+          <outerBoundaryIs>
+            <LinearRing>
+              <coordinates>
+                85.3300,27.7230,0 85.3305,27.7230,0 85.3305,27.7235,0 85.3300,27.7235,0 85.3300,27.7230,0
+              </coordinates>
+            </LinearRing>
+          </outerBoundaryIs>
+        </Polygon>
+        <Point>
+          <coordinates>85.3302,27.7232,0</coordinates>
+        </Point>
+      </MultiGeometry>
+    </Placemark>
+    
+    <!-- Test 8: Very large coordinates -->
+    <Placemark>
+      <name>KITTA-008</name>
+      <description>Large coordinate values</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              200.0000,100.0000,0 200.0005,100.0000,0 200.0005,100.0005,0 200.0000,100.0005,0 200.0000,100.0000,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <!-- Test 9: Special characters in name -->
+    <Placemark>
+      <name>KITTA-009 (Special: @#$%^&*)</name>
+      <description>Special characters test</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3310,27.7240,0 85.3315,27.7240,0 85.3315,27.7245,0 85.3310,27.7245,0 85.3310,27.7240,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <!-- Test 10: Very small polygon -->
+    <Placemark>
+      <name>KITTA-010</name>
+      <description>Very small area</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3320,27.7250,0 85.3320001,27.7250,0 85.3320001,27.7250001,0 85.3320,27.7250001,0 85.3320,27.7250,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <!-- Test 11: Nested folders -->
+    <Folder>
+      <name>Nested Folder</name>
+      <Placemark>
+        <name>KITTA-011</name>
+        <description>Nested folder test</description>
+        <Polygon>
+          <outerBoundaryIs>
+            <LinearRing>
+              <coordinates>
+                85.3330,27.7260,0 85.3335,27.7260,0 85.3335,27.7265,0 85.3330,27.7265,0 85.3330,27.7260,0
+              </coordinates>
+            </LinearRing>
+          </outerBoundaryIs>
+        </Polygon>
+      </Placemark>
+    </Folder>
+    
+    <!-- Test 12: No geometry -->
+    <Placemark>
+      <name>KITTA-012</name>
+      <description>No geometry element</description>
+    </Placemark>
+    
+    <!-- Test 13: Complex polygon with holes -->
+    <Placemark>
+      <name>KITTA-013</name>
+      <description>Polygon with inner boundary</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3340,27.7270,0 85.3345,27.7270,0 85.3345,27.7275,0 85.3340,27.7275,0 85.3340,27.7270,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+        <innerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3341,27.7271,0 85.3344,27.7271,0 85.3344,27.7274,0 85.3341,27.7274,0 85.3341,27.7271,0
+            </coordinates>
+          </LinearRing>
+        </innerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+  </Document>
+</kml> 

@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-2xl mx-auto mt-10 bg-white rounded-xl shadow-lg p-8 animate-fade-in">
+  <h2 class="text-2xl font-bold mb-6 text-blue-700">Help & Documentation</h2>
+  <h3 class="text-lg font-semibold mb-2">How to Use</h3>
+  <ul class="list-disc pl-6 mb-4">
+    <li>Upload your CSV file using the <b>Upload CSV</b> page. Only .csv files up to 5MB are accepted.</li>
+    <li>Map your CSV columns to required fields (Kitta Number, Latitude, Longitude, Owner Name).</li>
+    <li>Preview your data on the interactive map and table before confirming.</li>
+    <li>Download KML or error reports as needed.</li>
+    <li>View your upload history and manage files from the dashboard.</li>
+  </ul>
+  <h3 class="text-lg font-semibold mb-2">Frequently Asked Questions</h3>
+  <ul class="list-disc pl-6 mb-4">
+    <li><b>What file types are supported?</b> Only .csv files with valid structure and content.</li>
+    <li><b>How are errors reported?</b> Errors are shown after upload and can be downloaded as a CSV report.</li>
+    <li><b>How do I see my previous uploads?</b> Go to the dashboard to view your upload history and download files.</li>
+    <li><b>Is my data secure?</b> All uploads are scanned for dangerous content and only authenticated users can access their data.</li>
+    <li><b>How do I get help?</b> Contact support or refer to this help page for guidance.</li>
+  </ul>
+  <h3 class="text-lg font-semibold mb-2">Tips for Large Files</h3>
+  <ul class="list-disc pl-6 mb-4">
+    <li>Split very large CSVs into smaller chunks if you encounter performance issues.</li>
+    <li>Ensure your CSV has clear headers and no extra formatting.</li>
+    <li>Contact support for bulk upload options.</li>
+  </ul>
+  <h3 class="text-lg font-semibold mb-2">Mobile & Accessibility</h3>
+  <ul class="list-disc pl-6 mb-4">
+    <li>The application is fully responsive and works on all modern devices.</li>
+    <li>Use the navigation menu to access all features on mobile.</li>
+  </ul>
+</div>
+{% endblock %} 

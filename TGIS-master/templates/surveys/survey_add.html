@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-lg mx-auto mt-10 bg-white rounded-xl shadow-lg p-8 animate-fade-in">
+  <h2 class="text-2xl font-bold mb-6 text-gray-800">Add Survey</h2>
+  <form method="post" class="space-y-6">
+    {% csrf_token %}
+    <div class="space-y-4">
+      {{ form.as_p|safe }}
+    </div>
+    <button type="submit" class="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition transform hover:scale-105">Add Survey</button>
+  </form>
+  {% if messages %}
+    <ul class="mt-6">
+      {% for message in messages %}
+        <li class="bg-green-100 text-green-800 px-4 py-2 rounded mb-2 animate-fade-in">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>
+{% endblock %}

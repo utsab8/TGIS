@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Test Land Parcels</name>
+    <description>Sample KML file for testing land parser</description>
+    
+    <Placemark>
+      <name>Kitta: LAND-001 - Owner: John Smith</name>
+      <description>Land parcel with kitta number LAND-001, owned by John Smith. Area: 1500 sq m</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.123,27.456,0
+              85.124,27.456,0
+              85.124,27.457,0
+              85.123,27.457,0
+              85.123,27.456,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <Placemark>
+      <name>Kitta: LAND-002 - Owner: Jane Doe</name>
+      <description>Land parcel with kitta number LAND-002, owned by Jane Doe. Area: 2000 sq m</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.125,27.458,0
+              85.126,27.458,0
+              85.126,27.459,0
+              85.125,27.459,0
+              85.125,27.458,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+    <Placemark>
+      <name>Kitta: LAND-003 - Owner: Bob Johnson</name>
+      <description>Land parcel with kitta number LAND-003, owned by Bob Johnson. Area: 1200 sq m</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.127,27.460,0
+              85.128,27.460,0
+              85.128,27.461,0
+              85.127,27.461,0
+              85.127,27.460,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+  </Document>
+</kml> 

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Survey Data Points</name>
+    <description>Simple survey location data</description>
+    
+    <!-- Style for survey points -->
+    <Style id="surveyPoint">
+      <IconStyle>
+        <color>ff0000ff</color>
+        <scale>1.2</scale>
+        <Icon>
+          <href>http://maps.google.com/mapfiles/kml/pushpin/red-pushpin.png</href>
+        </Icon>
+      </IconStyle>
+      <LabelStyle>
+        <color>ffffffff</color>
+        <scale>1.0</scale>
+      </LabelStyle>
+    </Style>
+    
+    <!-- Survey Point 1 -->
+    <Placemark>
+      <name>Survey Point 1</name>
+      <description>
+        Survey ID: SP001
+        Date: 2025-01-15
+        Type: Residential
+        Status: Completed
+      </description>
+      <styleUrl>#surveyPoint</styleUrl>
+      <Point>
+        <coordinates>-122.4194,37.7749,0</coordinates>
+      </Point>
+    </Placemark>
+    
+    <!-- Survey Point 2 -->
+    <Placemark>
+      <name>Survey Point 2</name>
+      <description>
+        Survey ID: SP002
+        Date: 2025-01-16
+        Type: Commercial
+        Status: In Progress
+      </description>
+      <styleUrl>#surveyPoint</styleUrl>
+      <Point>
+        <coordinates>-122.4094,37.7849,0</coordinates>
+      </Point>
+    </Placemark>
+    
+    <!-- Survey Point 3 -->
+    <Placemark>
+      <name>Survey Point 3</name>
+      <description>
+        Survey ID: SP003
+        Date: 2025-01-17
+        Type: Industrial
+        Status: Pending
+      </description>
+      <styleUrl>#surveyPoint</styleUrl>
+      <Point>
+        <coordinates>-122.4294,37.7649,0</coordinates>
+      </Point>
+    </Placemark>
+    
+    <!-- Survey Area -->
+    <Placemark>
+      <name>Survey Area Boundary</name>
+      <description>Main survey area coverage</description>
+      <Style>
+        <LineStyle>
+          <color>ff00ffff</color>
+          <width>3</width>
+        </LineStyle>
+        <PolyStyle>
+          <color>4400ffff</color>
+        </PolyStyle>
+      </Style>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              -122.4394,37.7549,0
+              -122.3994,37.7549,0
+              -122.3994,37.7949,0
+              -122.4394,37.7949,0
+              -122.4394,37.7549,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    
+  </Document>
+</kml>

@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+  <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center animate-fade-in">
+    <div class="text-4xl font-bold text-blue-600" id="total-points">0</div>
+    <div class="text-gray-500 mt-2">Total Plots</div>
+  </div>
+  <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center animate-fade-in">
+    <div class="text-4xl font-bold text-green-600" id="total-boundaries">0</div>
+    <div class="text-gray-500 mt-2">Total Boundaries</div>
+  </div>
+  <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center animate-fade-in">
+    <div class="text-4xl font-bold text-purple-600" id="total-area">0</div>
+    <div class="text-gray-500 mt-2">Total Area (m²)</div>
+  </div>
+</div>
+<div class="bg-white rounded-xl shadow-lg p-6 mb-8 animate-fade-in">
+  <canvas id="dataChart" width="400" height="120"></canvas>
+</div>
+<div class="bg-white rounded-xl shadow-lg p-6 animate-fade-in">
+  <h4 class="text-lg font-semibold mb-4 text-blue-700">Recent Activity</h4>
+  <ul id="activity-list" class="space-y-2"></ul>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function fetchDashboardData() {
+  fetch('/surveys/api/dashboard-analytics/')
+    .then(res => res.json())
+    .then(data => {
+      animateCounter('total-points', data.total_points);
+      animateCounter('total-boundaries', data.total_boundaries);
+      animateCounter('total-area', data.total_area_m2);
+      updateChart(data.total_points, data.total_boundaries);
+    });
+}
+function animateCounter(id, end) {
+  const el = document.getElementById(id);
+  let start = 0;
+  const duration = 800;
+  const step = Math.ceil(end / (duration / 16));
+  function update() {
+    start += step;
+    if (start >= end) {
+      el.textContent = end;
+    } else {
+      el.textContent = start;
+      requestAnimationFrame(update);
+    }
+  }
+  update();
+}
+function updateChart(points, boundaries) {
+  if(window.dataChartInstance) window.dataChartInstance.destroy();
+  var ctx = document.getElementById('dataChart').getContext('2d');
+  window.dataChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['CSV Plots', 'KML Boundaries'],
+      datasets: [{
+        data: [points, boundaries],
+        backgroundColor: ['#3388ff', 'red']
+      }]
+    },
+    options: {responsive: true}
+  });
+}
+function fetchActivityFeed() {
+  // Example: Replace with real API or backend logic
+  var activities = [
+    'User A uploaded KML file',
+    'User B added new plot',
+    'User C exported CSV',
+    'User D deleted attachment'
+  ];
+  var list = document.getElementById('activity-list');
+  list.innerHTML = '';
+  activities.forEach(function(act) {
+    var li = document.createElement('li');
+    li.textContent = act;
+    li.className = 'bg-blue-50 text-blue-800 px-3 py-2 rounded shadow-sm animate-fade-in';
+    list.appendChild(li);
+  });
+}
+fetchDashboardData();
+fetchActivityFeed();
+setInterval(fetchDashboardData, 5000); // Real-time updates
+</script>
+<style>
+@keyframes fade-in { from { opacity: 0; transform: translateY(20px);} to { opacity: 1; transform: none; } }
+.animate-fade-in { animation: fade-in 0.7s cubic-bezier(.4,0,.2,1); }
+</style>
+{% endblock %}

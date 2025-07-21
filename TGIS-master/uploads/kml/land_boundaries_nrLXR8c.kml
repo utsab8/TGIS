@@ -1,0 +1,462 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Kathmandu Land Survey Boundaries</name>
+    <description>Sample KML file containing land parcel boundaries for testing GeoSurveyPro</description>
+    
+    <!-- Residential Zone Boundary -->
+    <Placemark>
+      <name>Residential Zone A</name>
+      <description>Primary residential development area covering multiple plots</description>
+      <ExtendedData>
+        <Data name="zone_type">
+          <value>Residential</value>
+        </Data>
+        <Data name="zone_code">
+          <value>RES-A-001</value>
+        </Data>
+        <Data name="total_area_sqm">
+          <value>15000</value>
+        </Data>
+        <Data name="established_date">
+          <value>2024-01-15</value>
+        </Data>
+      </ExtendedData>
+      <Style>
+        <LineStyle>
+          <color>ff0000ff</color>
+          <width>2</width>
+        </LineStyle>
+        <PolyStyle>
+          <color>330000ff</color>
+          <fill>1</fill>
+          <outline>1</outline>
+        </PolyStyle>
+      </Style>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3225,27.7150,0
+              85.3275,27.7150,0
+              85.3275,27.7200,0
+              85.3225,27.7200,0
+              85.3225,27.7150,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+
+    <!-- Commercial Zone Boundary -->
+    <Placemark>
+      <name>Commercial Zone B</name>
+      <description>Main commercial district with shops and offices</description>
+      <ExtendedData>
+        <Data name="zone_type">
+          <value>Commercial</value>
+        </Data>
+        <Data name="zone_code">
+          <value>COM-B-002</value>
+        </Data>
+        <Data name="total_area_sqm">
+          <value>12000</value>
+        </Data>
+        <Data name="established_date">
+          <value>2024-01-16</value>
+        </Data>
+      </ExtendedData>
+      <Style>
+        <LineStyle>
+          <color>ff00ff00</color>
+          <width>2</width>
+        </LineStyle>
+        <PolyStyle>
+          <color>3300ff00</color>
+          <fill>1</fill>
+          <outline>1</outline>
+        </PolyStyle>
+      </Style>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3240,27.7175,0
+              85.3270,27.7175,0
+              85.3270,27.7205,0
+              85.3240,27.7205,0
+              85.3240,27.7175,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+
+    <!-- Agricultural Zone Boundary -->
+    <Placemark>
+      <name>Agricultural Zone C</name>
+      <description>Agricultural land suitable for farming and cultivation</description>
+      <ExtendedData>
+        <Data name="zone_type">
+          <value>Agricultural</value>
+        </Data>
+        <Data name="zone_code">
+          <value>AGR-C-003</value>
+        </Data>
+        <Data name="total_area_sqm">
+          <value>25000</value>
+        </Data>
+        <Data name="established_date">
+          <value>2024-01-17</value>
+        </Data>
+        <Data name="soil_type">
+          <value>Fertile alluvial</value>
+        </Data>
+      </ExtendedData>
+      <Style>
+        <LineStyle>
+          <color>ff00aa00</color>
+          <width>2</width>
+        </LineStyle>
+        <PolyStyle>
+          <color>3300aa00</color>
+          <fill>1</fill>
+          <outline>1</outline>
+        </PolyStyle>
+      </Style>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3220,27.7140,0
+              85.3280,27.7140,0
+              85.3280,27.7170,0
+              85.3220,27.7170,0
+              85.3220,27.7140,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+
+    <!-- Industrial Zone Boundary -->
+    <Placemark>
+      <name>Industrial Zone D</name>
+      <description>Industrial development area for manufacturing and warehouses</description>
+      <ExtendedData>
+        <Data name="zone_type">
+          <value>Industrial</value>
+        </Data>
+        <Data name="zone_code">
+          <value>IND-D-004</value>
+        </Data>
+        <Data name="total_area_sqm">
+          <value>18000</value>
+        </Data>
+        <Data name="established_date">
+          <value>2024-01-18</value>
+        </Data>
+        <Data name="industrial_type">
+          <value>Light Manufacturing</value>
+        </Data>
+      </ExtendedData>
+      <Style>
+        <LineStyle>
+          <color>ffff0000</color>
+          <width>2</width>
+        </LineStyle>
+        <PolyStyle>
+          <color>33ff0000</color>
+          <fill>1</fill>
+          <outline>1</outline>
+        </PolyStyle>
+      </Style>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3255,27.7160,0
+              85.3290,27.7160,0
+              85.3290,27.7190,0
+              85.3255,27.7190,0
+              85.3255,27.7160,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+
+    <!-- Mixed Use Zone Boundary -->
+    <Placemark>
+      <name>Mixed Use Zone E</name>
+      <description>Mixed development allowing residential and commercial use</description>
+      <ExtendedData>
+        <Data name="zone_type">
+          <value>Mixed</value>
+        </Data>
+        <Data name="zone_code">
+          <value>MIX-E-005</value>
+        </Data>
+        <Data name="total_area_sqm">
+          <value>10000</value>
+        </Data>
+        <Data name="established_date">
+          <value>2024-01-19</value>
+        </Data>
+        <Data name="permitted_uses">
+          <value>Residential, Commercial, Light Office</value>
+        </Data>
+      </ExtendedData>
+      <Style>
+        <LineStyle>
+          <color>ffff00ff</color>
+          <width>2</width>
+        </LineStyle>
+        <PolyStyle>
+          <color>33ff00ff</color>
+          <fill>1</fill>
+          <outline>1</outline>
+        </PolyStyle>
+      </Style>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3235,27.7180,0
+              85.3265,27.7180,0
+              85.3265,27.7210,0
+              85.3235,27.7210,0
+              85.3235,27.7180,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+
+    <!-- Individual Plot Boundaries -->
+    <Placemark>
+      <name>Plot KTM-001 Boundary</name>
+      <description>Individual plot boundary for Kitta Number KTM-001 owned by Ram Bahadur Shrestha</description>
+      <ExtendedData>
+        <Data name="kitta_number">
+          <value>KTM-001</value>
+        </Data>
+        <Data name="owner_name">
+          <value>Ram Bahadur Shrestha</value>
+        </Data>
+        <Data name="plot_area_sqm">
+          <value>500</value>
+        </Data>
+        <Data name="land_type">
+          <value>Residential</value>
+        </Data>
+        <Data name="survey_date">
+          <value>2024-01-15</value>
+        </Data>
+      </ExtendedData>
+      <Style>
+        <LineStyle>
+          <color>ff000000</color>
+          <width>3</width>
+        </LineStyle>
+        <PolyStyle>
+          <color>55ffffff</color>
+          <fill>1</fill>
+          <outline>1</outline>
+        </PolyStyle>
+      </Style>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3238,27.7170,0
+              85.3242,27.7170,0
+              85.3242,27.7174,0
+              85.3238,27.7174,0
+              85.3238,27.7170,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+
+    <Placemark>
+      <name>Plot KTM-002 Boundary</name>
+      <description>Individual plot boundary for Kitta Number KTM-002 owned by Sita Devi Tamang</description>
+      <ExtendedData>
+        <Data name="kitta_number">
+          <value>KTM-002</value>
+        </Data>
+        <Data name="owner_name">
+          <value>Sita Devi Tamang</value>
+        </Data>
+        <Data name="plot_area_sqm">
+          <value>750</value>
+        </Data>
+        <Data name="land_type">
+          <value>Commercial</value>
+        </Data>
+        <Data name="survey_date">
+          <value>2024-01-16</value>
+        </Data>
+      </ExtendedData>
+      <Style>
+        <LineStyle>
+          <color>ff000000</color>
+          <width>3</width>
+        </LineStyle>
+        <PolyStyle>
+          <color>55ffffff</color>
+          <fill>1</fill>
+          <outline>1</outline>
+        </PolyStyle>
+      </Style>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3248,27.7178,0
+              85.3252,27.7178,0
+              85.3252,27.7182,0
+              85.3248,27.7182,0
+              85.3248,27.7178,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+
+    <!-- Survey Control Points -->
+    <Placemark>
+      <name>Survey Control Point 1</name>
+      <description>Primary survey control point for area triangulation</description>
+      <ExtendedData>
+        <Data name="control_point_id">
+          <value>CP-001</value>
+        </Data>
+        <Data name="elevation_m">
+          <value>1350</value>
+        </Data>
+        <Data name="coordinate_system">
+          <value>WGS84</value>
+        </Data>
+        <Data name="established_date">
+          <value>2024-01-10</value>
+        </Data>
+      </ExtendedData>
+      <Style>
+        <IconStyle>
+          <scale>1.2</scale>
+          <Icon>
+            <href>http://maps.google.com/mapfiles/kml/shapes/target.png</href>
+          </Icon>
+        </IconStyle>
+      </Style>
+      <Point>
+        <coordinates>85.3250,27.7175,1350</coordinates>
+      </Point>
+    </Placemark>
+
+    <Placemark>
+      <name>Survey Control Point 2</name>
+      <description>Secondary survey control point for area triangulation</description>
+      <ExtendedData>
+        <Data name="control_point_id">
+          <value>CP-002</value>
+        </Data>
+        <Data name="elevation_m">
+          <value>1345</value>
+        </Data>
+        <Data name="coordinate_system">
+          <value>WGS84</value>
+        </Data>
+        <Data name="established_date">
+          <value>2024-01-10</value>
+        </Data>
+      </ExtendedData>
+      <Style>
+        <IconStyle>
+          <scale>1.2</scale>
+          <Icon>
+            <href>http://maps.google.com/mapfiles/kml/shapes/target.png</href>
+          </Icon>
+        </IconStyle>
+      </Style>
+      <Point>
+        <coordinates>85.3260,27.7185,1345</coordinates>
+      </Point>
+    </Placemark>
+
+    <!-- Water Bodies -->
+    <Placemark>
+      <name>Bagmati River Section</name>
+      <description>River boundary affecting land survey boundaries</description>
+      <ExtendedData>
+        <Data name="feature_type">
+          <value>Water Body</value>
+        </Data>
+        <Data name="water_body_type">
+          <value>River</value>
+        </Data>
+        <Data name="name">
+          <value>Bagmati River</value>
+        </Data>
+      </ExtendedData>
+      <Style>
+        <LineStyle>
+          <color>ffff0000</color>
+          <width>4</width>
+        </LineStyle>
+        <PolyStyle>
+          <color>77ff0000</color>
+          <fill>1</fill>
+          <outline>1</outline>
+        </PolyStyle>
+      </Style>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              85.3200,27.7120,0
+              85.3300,27.7125,0
+              85.3305,27.7135,0
+              85.3205,27.7130,0
+              85.3200,27.7120,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+
+    <!-- Road Network -->
+    <Placemark>
+      <name>Ring Road Section</name>
+      <description>Major road affecting land boundaries</description>
+      <ExtendedData>
+        <Data name="feature_type">
+          <value>Road</value>
+        </Data>
+        <Data name="road_type">
+          <value>Major Highway</value>
+        </Data>
+        <Data name="width_m">
+          <value>15</value>
+        </Data>
+      </ExtendedData>
+      <Style>
+        <LineStyle>
+          <color>ff000000</color>
+          <width>5</width>
+        </LineStyle>
+      </Style>
+      <LineString>
+        <coordinates>
+          85.3210,27.7140,0
+          85.3290,27.7145,0
+          85.3295,27.7200,0
+        </coordinates>
+      </LineString>
+    </Placemark>
+
+  </Document>
+</kml>

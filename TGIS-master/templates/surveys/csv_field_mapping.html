@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load csv_extras %}
+{% block content %}
+<div class="max-w-3xl mx-auto mt-10 bg-white rounded-xl shadow-lg p-8 animate-fade-in">
+  <h2 class="text-2xl font-bold mb-6 text-gray-800">Map CSV Fields</h2>
+  {% if request.session.csv_error_rows %}
+    <div class="mb-4 p-4 bg-red-100 text-red-800 rounded">
+      <b>Some rows could not be processed.</b> <br>
+      <a href="{% url 'download_error_report' %}" class="underline text-blue-700">Download error report CSV</a>
+    </div>
+  {% endif %}
+  <form method="post" action="" id="field-mapping-form">
+    {% csrf_token %}
+    <div class="mb-6">
+      <h3 class="text-lg font-semibold mb-2">Field Mapping</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for key, label in field_labels.items %}
+        <div>
+          <label class="block font-medium mb-1">{{ label }} <span class="text-red-500">*</span></label>
+          <select name="map_{{ key }}" class="w-full border rounded p-2">
+            <option value="">-- Select column --</option>
+            {% for col in columns %}
+              <option value="{{ col }}" {% if field_map|get_item:key == col %}selected{% endif %}>{{ col }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="mb-6">
+      <h3 class="text-lg font-semibold mb-2">Preview (First 10 Rows)</h3>
+      <div class="overflow-x-auto">
+        <table class="min-w-full border text-sm">
+          <thead>
+            <tr>
+              {% for col in columns %}
+                <th class="border px-2 py-1">{{ col }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in preview_rows %}
+              <tr>
+                {% for col in columns %}
+                  <td class="border px-2 py-1">{{ row|get_item:col }}</td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div id="map-debug" style="margin-bottom:1rem; color:#222; font-size:1em; background:#f9fafb; border:1px solid #eee; border-radius:6px; padding:8px;"></div>
+    <div class="mb-6">
+      <h3 class="text-lg font-semibold mb-2">Map Preview</h3>
+      <div id="csv-map" style="height: 400px; width: 100%; border-radius: 8px; border: 1px solid #e5e7eb; position: relative;"></div>
+      <div id="map-message" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#888;font-weight:bold;z-index:10;display:none;">No valid coordinates to display. Please check your CSV data.</div>
+      <div class="flex gap-4 mt-2">
+        <label><input type="checkbox" id="toggle-points" checked> Show Points</label>
+        <button type="button" id="zoom-fit" class="px-3 py-1 bg-blue-500 text-white rounded">Zoom to Fit</button>
+        <button type="button" id="export-map" class="px-3 py-1 bg-green-500 text-white rounded">Export Map as Image</button>
+      </div>
+    </div>
+    <button type="submit" class="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition transform hover:scale-105">Confirm Mapping & Continue</button>
+  </form>
+  <form method="post" action="{% url 'csv_to_kml_from_mapping' %}" style="margin-top: 1rem;">
+    {% csrf_token %}
+    <button type="submit" class="w-full py-2 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition transform hover:scale-105">Download KML</button>
+  </form>
+</div>
+{% endblock %}
+
+{% comment %}
+Helper filter to get dict item by key in Django template
+{% endcomment %}
+{% if False %}
+{{ row|get_item:col }}
+{% endif %}
+
+{% block extra_js %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/dist/dom-to-image.min.js"></script>
+{{ preview_rows|json_script:"preview-rows-data" }}
+{{ field_map|json_script:"field-map-data" }}
+{{ columns|json_script:"columns-data" }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const previewRows = JSON.parse(document.getElementById('preview-rows-data').textContent);
+  const columns = JSON.parse(document.getElementById('columns-data').textContent);
+
+  // Find the first two numeric columns in the data
+  function findLatLonCols(rows, columns) {
+    if (!rows.length) return [null, null];
+    let latCol = null, lonCol = null;
+    for (let i = 0; i < columns.length; i++) {
+      const val = parseFloat(rows[0][columns[i]]);
+      if (!isNaN(val)) {
+        if (!latCol) latCol = columns[i];
+        else if (!lonCol) { lonCol = columns[i]; break; }
+      }
+    }
+    return [latCol, lonCol];
+  }
+
+  const [latCol, lonCol] = findLatLonCols(previewRows, columns);
+
+  // Show debug info
+  const debugPanel = document.getElementById('map-debug');
+  debugPanel.innerHTML = `<b>Debug Info:</b><br>latCol: <b>${latCol}</b><br>lonCol: <b>${lonCol}</b><br>columns: <pre>${JSON.stringify(columns, null, 2)}</pre>previewRows[0]: <pre>${JSON.stringify(previewRows[0] || {}, null, 2)}</pre>`;
+
+  let map = L.map('csv-map').setView([27.7, 85.3], 8);
+  let osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+  let pointLayer = L.layerGroup().addTo(map);
+  let bounds = [];
+  let hasData = false;
+
+  previewRows.forEach(row => {
+    let lat = latCol && row[latCol] ? parseFloat(row[latCol]) : NaN;
+    let lon = lonCol && row[lonCol] ? parseFloat(row[lonCol]) : NaN;
+    if (!isNaN(lat) && !isNaN(lon)) {
+      let marker = L.marker([lat, lon]);
+      marker.bindPopup(Object.entries(row).map(([k,v]) => `<b>${k}:</b> ${v}`).join('<br>'));
+      pointLayer.addLayer(marker);
+      bounds.push([lat, lon]);
+      hasData = true;
+    }
+  });
+
+  if (!hasData) {
+    document.getElementById('map-message').style.display = 'block';
+    let marker = L.marker([27.7, 85.3]).addTo(map);
+    marker.bindPopup('Default marker: No valid data found.').openPopup();
+    bounds.push([27.7, 85.3]);
+  } else {
+    document.getElementById('map-message').style.display = 'none';
+  }
+
+  // Zoom to fit
+  if (bounds.length) map.fitBounds(bounds, {padding: [30,30]});
+});
+</script>
+{% endblock %} 
