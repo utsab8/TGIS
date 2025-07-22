@@ -1,24 +1,50 @@
 {% extends 'base.html' %}
 {% load csv_extras %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    .map-preview-container { border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: relative; }
+    .map-controls { display: flex; gap: 0.75rem; padding: 0.75rem 1rem; background-color: #f9fafb; border-top: 1px solid #e5e7eb; align-items: center; }
+    .map-controls button, .map-controls label { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
+    .map-controls button { background-color: #3b82f6; color: white; border: none; }
+    .map-controls button.export { background-color: #16a34a; }
+    #csv-map { height: 500px; }
+    .legend { padding: 6px 8px; font: 14px/16px Arial, Helvetica, sans-serif; background: white; background: rgba(255,255,255,0.8); box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; }
+    .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; }
+    .csv-table-preview { background: #f9fafb; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 2rem; padding: 1.5rem; }
+    .csv-table-preview table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+    .csv-table-preview th, .csv-table-preview td { border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; text-align: left; }
+    .csv-table-preview th { background: #e0e7ef; font-weight: 600; }
+    .csv-table-preview tr:nth-child(even) { background: #f3f4f6; }
+    /* Style for permanent labels on map */
+    .leaflet-tooltip.permanent-label {
+        background-color: rgba(255, 255, 255, 0.8);
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-shadow: none;
+        color: #333;
+        font-weight: bold;
+    }
+  </style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-3xl mx-auto mt-10 bg-white rounded-xl shadow-lg p-8 animate-fade-in">
-  <h2 class="text-2xl font-bold mb-6 text-gray-800">Map CSV Fields</h2>
-  {% if request.session.csv_error_rows %}
-    <div class="mb-4 p-4 bg-red-100 text-red-800 rounded">
-      <b>Some rows could not be processed.</b> <br>
-      <a href="{% url 'download_error_report' %}" class="underline text-blue-700">Download error report CSV</a>
-    </div>
-  {% endif %}
+<div class="max-w-4xl mx-auto mt-10 bg-white rounded-xl shadow-lg p-8 animate-fade-in">
+  <h2 class="text-3xl font-bold mb-6 text-gray-800">Map CSV Fields and Preview</h2>
+  
   <form method="post" action="" id="field-mapping-form">
     {% csrf_token %}
-    <div class="mb-6">
-      <h3 class="text-lg font-semibold mb-2">Field Mapping</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    
+    <div class="mb-6 bg-gray-50 p-6 rounded-lg border">
+      <h3 class="text-xl font-semibold mb-4 text-gray-700">1. Map Your Data Fields</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {% for key, label in field_labels.items %}
         <div>
-          <label class="block font-medium mb-1">{{ label }} <span class="text-red-500">*</span></label>
-          <select name="map_{{ key }}" class="w-full border rounded p-2">
-            <option value="">-- Select column --</option>
+          <label class="block font-medium mb-1 text-gray-600">{{ label }} {% if key == 'kitta_number' %}<span class="text-red-500">*</span>{% endif %}</label>
+          <select id="map-{{ key }}" name="map_{{ key }}" class="w-full border rounded p-2 bg-white shadow-sm">
+            <option value="">-- Select --</option>
             {% for col in columns %}
               <option value="{{ col }}" {% if field_map|get_item:key == col %}selected{% endif %}>{{ col }}</option>
             {% endfor %}
@@ -27,14 +53,15 @@
         {% endfor %}
       </div>
     </div>
-    <div class="mb-6">
-      <h3 class="text-lg font-semibold mb-2">Preview (First 10 Rows)</h3>
+
+    <div class="csv-table-preview">
+      <h3 class="text-lg font-semibold mb-2 text-gray-700">CSV Table Preview (First 10 Rows)</h3>
       <div class="overflow-x-auto">
-        <table class="min-w-full border text-sm">
+        <table>
           <thead>
             <tr>
               {% for col in columns %}
-                <th class="border px-2 py-1">{{ col }}</th>
+                <th>{{ col }}</th>
               {% endfor %}
             </tr>
           </thead>
@@ -42,7 +69,7 @@
             {% for row in preview_rows %}
               <tr>
                 {% for col in columns %}
-                  <td class="border px-2 py-1">{{ row|get_item:col }}</td>
+                  <td>{{ row|get_item:col }}</td>
                 {% endfor %}
               </tr>
             {% endfor %}
@@ -50,97 +77,170 @@
         </table>
       </div>
     </div>
-    <div id="map-debug" style="margin-bottom:1rem; color:#222; font-size:1em; background:#f9fafb; border:1px solid #eee; border-radius:6px; padding:8px;"></div>
-    <div class="mb-6">
-      <h3 class="text-lg font-semibold mb-2">Map Preview</h3>
-      <div id="csv-map" style="height: 400px; width: 100%; border-radius: 8px; border: 1px solid #e5e7eb; position: relative;"></div>
-      <div id="map-message" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#888;font-weight:bold;z-index:10;display:none;">No valid coordinates to display. Please check your CSV data.</div>
-      <div class="flex gap-4 mt-2">
-        <label><input type="checkbox" id="toggle-points" checked> Show Points</label>
-        <button type="button" id="zoom-fit" class="px-3 py-1 bg-blue-500 text-white rounded">Zoom to Fit</button>
-        <button type="button" id="export-map" class="px-3 py-1 bg-green-500 text-white rounded">Export Map as Image</button>
-      </div>
+
+    <div class="mb-6 bg-gray-50 p-6 rounded-lg border">
+        <h3 class="text-xl font-semibold mb-2 text-gray-700">2. Preview Data on Map</h3>
+        <div class="map-preview-container">
+            <div id="csv-map"></div>
+            <div class="map-controls">
+                <label><input type="checkbox" id="toggle-points" checked> Show Points</label>
+                <button type="button" id="zoom-fit"><i class="fas fa-search-plus"></i> Zoom to Fit</button>
+                <button type="button" id="export-map" class="export"><i class="fas fa-camera"></i> Export as Image</button>
+            </div>
+        </div>
     </div>
-    <button type="submit" class="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition transform hover:scale-105">Confirm Mapping & Continue</button>
-  </form>
-  <form method="post" action="{% url 'csv_to_kml_from_mapping' %}" style="margin-top: 1rem;">
-    {% csrf_token %}
-    <button type="submit" class="w-full py-2 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition transform hover:scale-105">Download KML</button>
+    
+    <div class="flex flex-col md:flex-row gap-4" style="z-index: 100; position: relative;">
+      <button type="submit" name="action" value="confirm" class="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 flex-1">
+        <i class="fas fa-check-circle"></i> Confirm Mapping & Continue
+      </button>
+      <button type="submit" name="action" value="download_kml" class="w-full py-3 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 flex-1">
+        <i class="fas fa-download"></i> Download as KML
+      </button>
+    </div>
   </form>
 </div>
 {% endblock %}
 
-{% comment %}
-Helper filter to get dict item by key in Django template
-{% endcomment %}
-{% if False %}
-{{ row|get_item:col }}
-{% endif %}
-
 {% block extra_js %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/dist/dom-to-image.min.js"></script>
+<script src="https://unpkg.com/leaflet-image@0.4.0/dist/leaflet-image.js"></script>
 {{ preview_rows|json_script:"preview-rows-data" }}
-{{ field_map|json_script:"field-map-data" }}
-{{ columns|json_script:"columns-data" }}
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const previewRows = JSON.parse(document.getElementById('preview-rows-data').textContent);
-  const columns = JSON.parse(document.getElementById('columns-data').textContent);
+  try { // Add a top-level try-catch to prevent any errors from breaking the page
+    const previewRows = JSON.parse(document.getElementById('preview-rows-data').textContent);
+    let map, pointLayer, shapeLayer, bounds, legend;
+    const shapeColors = ['#e41a1c', '#4daf4a', '#984ea3', '#ff7f00', '#377eb8'];
+    let shapeIndex = 0;
 
-  // Find the first two numeric columns in the data
-  function findLatLonCols(rows, columns) {
-    if (!rows.length) return [null, null];
-    let latCol = null, lonCol = null;
-    for (let i = 0; i < columns.length; i++) {
-      const val = parseFloat(rows[0][columns[i]]);
-      if (!isNaN(val)) {
-        if (!latCol) latCol = columns[i];
-        else if (!lonCol) { lonCol = columns[i]; break; }
-      }
+    function initMap() {
+        if (map) return;
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri', crossOrigin: 'anonymous' });
+        const street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', crossOrigin: 'anonymous' });
+        map = L.map('csv-map', { layers: [satellite] }).setView([27.7, 85.3], 8);
+        L.control.layers({ "Satellite": satellite, "Street": street }).addTo(map);
+        pointLayer = L.layerGroup().addTo(map);
+        shapeLayer = L.layerGroup().addTo(map);
+        legend = L.control({position: 'bottomright'});
+        legend.onAdd = function (map) { return L.DomUtil.create('div', 'info legend'); };
+        legend.addTo(map);
     }
-    return [latCol, lonCol];
-  }
 
-  const [latCol, lonCol] = findLatLonCols(previewRows, columns);
+    function updateMap() {
+        pointLayer.clearLayers();
+        shapeLayer.clearLayers();
+        bounds = L.latLngBounds();
+        shapeIndex = 0;
 
-  // Show debug info
-  const debugPanel = document.getElementById('map-debug');
-  debugPanel.innerHTML = `<b>Debug Info:</b><br>latCol: <b>${latCol}</b><br>lonCol: <b>${lonCol}</b><br>columns: <pre>${JSON.stringify(columns, null, 2)}</pre>previewRows[0]: <pre>${JSON.stringify(previewRows[0] || {}, null, 2)}</pre>`;
+        const latCol = document.getElementById('map-lat').value;
+        const lonCol = document.getElementById('map-lon').value;
+        const geomCol = document.getElementById('map-geometry').value;
+        const nameCol = Object.keys(previewRows[0] || {}).find(k => k.toLowerCase() === 'name' || k.toLowerCase() === 'label');
 
-  let map = L.map('csv-map').setView([27.7, 85.3], 8);
-  let osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(map);
-  let pointLayer = L.layerGroup().addTo(map);
-  let bounds = [];
-  let hasData = false;
-
-  previewRows.forEach(row => {
-    let lat = latCol && row[latCol] ? parseFloat(row[latCol]) : NaN;
-    let lon = lonCol && row[lonCol] ? parseFloat(row[lonCol]) : NaN;
-    if (!isNaN(lat) && !isNaN(lon)) {
-      let marker = L.marker([lat, lon]);
-      marker.bindPopup(Object.entries(row).map(([k,v]) => `<b>${k}:</b> ${v}`).join('<br>'));
-      pointLayer.addLayer(marker);
-      bounds.push([lat, lon]);
-      hasData = true;
+        previewRows.forEach(row => {
+          try { // Add try-catch for each row to handle bad data gracefully
+            // Draw points only if lat and lon columns are selected and valid
+            if (latCol && lonCol) {
+                const lat = parseFloat(row[latCol]);
+                const lon = parseFloat(row[lonCol]);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    const marker = L.circleMarker([lat, lon], { radius: 5, color: '#3388ff', fillOpacity: 0.8 });
+                    pointLayer.addLayer(marker);
+                    bounds.extend([lat, lon]);
+                }
+            }
+            
+            // Draw shapes only if geometry column is selected and valid
+            if (geomCol && row[geomCol]) {
+                const layer = parseGeometry(row[geomCol]);
+                if (layer) {
+                    const color = shapeColors[shapeIndex % shapeColors.length];
+                    layer.setStyle({ color: color, weight: 3, opacity: 1, fillOpacity: 0.2 });
+                    if (nameCol && row[nameCol]) {
+                        layer.bindTooltip(String(row[nameCol]), { permanent: true, direction: 'center', className: 'permanent-label' });
+                    }
+                    shapeLayer.addLayer(layer);
+                    bounds.extend(layer.getBounds());
+                    shapeIndex++;
+                }
+            }
+          } catch(e) {
+            console.error("Could not process row:", row, e);
+          }
+        });
+        
+        if (bounds.isValid()) map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
     }
-  });
 
-  if (!hasData) {
-    document.getElementById('map-message').style.display = 'block';
-    let marker = L.marker([27.7, 85.3]).addTo(map);
-    marker.bindPopup('Default marker: No valid data found.').openPopup();
-    bounds.push([27.7, 85.3]);
-  } else {
-    document.getElementById('map-message').style.display = 'none';
+    function parseGeometry(geomString) {
+        if (typeof geomString !== 'string' || !geomString.length) return null;
+        try { 
+            const geojson = JSON.parse(geomString);
+            if (geojson.type && geojson.coordinates) return L.geoJSON(geojson);
+        } catch (e) { /* Fallback to WKT */ }
+        
+        const str = geomString.toUpperCase().trim();
+        let coords;
+        if (str.startsWith('POLYGON')) {
+            const match = str.match(/\(\((.*)\)\)/);
+            if (match && match[1]) {
+                coords = match[1].split(',').map(p => p.trim().split(/\s+/).map(Number).reverse());
+                return L.polygon(coords);
+            }
+        }
+        if (str.startsWith('LINESTRING')) {
+            const match = str.match(/\((.*)\)/);
+            if (match && match[1]) {
+                coords = match[1].split(',').map(p => p.trim().split(/\s+/).map(Number).reverse());
+                return L.polyline(coords);
+            }
+        }
+        return null;
+    }
+
+    // --- EVENT LISTENERS for controls ---
+    document.querySelectorAll('select').forEach(select => select.addEventListener('change', updateMap));
+    
+    document.getElementById('toggle-points').addEventListener('change', e => {
+        if (e.target.checked) map.addLayer(pointLayer);
+        else map.removeLayer(pointLayer);
+    });
+
+    document.getElementById('zoom-fit').addEventListener('click', () => {
+        if (bounds && bounds.isValid()) map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
+    });
+
+    document.getElementById('export-map').addEventListener('click', () => {
+        const button = document.getElementById('export-map');
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+        button.disabled = true;
+
+        leafletImage(map, function(err, canvas) {
+            if (err) {
+                alert('Could not export map. The tile server may be blocking the request. Please try again or check the console for errors.');
+                console.error('Leaflet-image error:', err);
+                button.innerHTML = '<i class="fas fa-camera"></i> Export as Image';
+                button.disabled = false;
+                return;
+            }
+            const link = document.createElement('a');
+            link.download = 'map-preview.png';
+            link.href = canvas.toDataURL();
+            link.click();
+            button.innerHTML = '<i class="fas fa-camera"></i> Export as Image';
+            button.disabled = false;
+        });
+    });
+    
+    // --- INITIALIZATION ---
+    initMap();
+    updateMap();
+  } catch (e) {
+    console.error("A critical error occurred on the mapping page:", e);
+    alert("An error occurred while initializing the map preview. Some features may not work correctly.");
   }
-
-  // Zoom to fit
-  if (bounds.length) map.fitBounds(bounds, {padding: [30,30]});
 });
 </script>
 {% endblock %} 

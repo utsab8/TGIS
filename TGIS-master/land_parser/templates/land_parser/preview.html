@@ -138,12 +138,6 @@
                     </label>
                 </div>
                 <div class="flex gap-2 mb-4">
-                    <button id="printMapPdfBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1 px-3 rounded shadow transition">
-                        Print Map to PDF
-                    </button>
-                    <button id="print-map-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded shadow transition">
-                        Print Map
-                    </button>
                     <button type="button" id="export-selected-csv-btn" class="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white font-semibold shadow transition-all duration-200 flex items-center gap-2 animate-bounce-once hidden">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                         Export Selected as CSV
@@ -900,43 +894,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('showSelectedToggle').addEventListener('change', function() {
         updateTableRows(this.checked);
         updateSelectionUI();
-    });
-    document.getElementById('printMapPdfBtn').addEventListener('click', function() {
-        var mapNode = document.getElementById('parcel-map');
-        domtoimage.toPng(mapNode)
-            .then(function (dataUrl) {
-                const { jsPDF } = window.jspdf;
-                const pdfWidth = mapNode.offsetWidth;
-                const pdfHeight = mapNode.offsetHeight;
-                const margin = 24;
-                const title = 'Land Parcel Map';
-                const dateStr = new Date().toLocaleDateString();
-                let filename = '';
-                var fileElem = document.getElementById('uploaded-filename');
-                if (fileElem) filename = fileElem.textContent.trim();
-                const pdf = new jsPDF({
-                    orientation: 'landscape',
-                    unit: 'px',
-                    format: [pdfWidth + margin * 2, pdfHeight + 140]
-                });
-                pdf.setFont('helvetica', 'bold');
-                pdf.setFontSize(22);
-                pdf.text(title, (pdfWidth + margin * 2) / 2, 40, { align: 'center' });
-                pdf.setFont('helvetica', 'normal');
-                pdf.setFontSize(14);
-                pdf.text('Date: ' + dateStr, (pdfWidth + margin * 2) / 2, 65, { align: 'center' });
-                pdf.text('Prepared by: Utsab', (pdfWidth + margin * 2) / 2, 85, { align: 'center' });
-                let y = 105;
-                if (filename) {
-                    pdf.text('KML File: ' + filename, (pdfWidth + margin * 2) / 2, 105, { align: 'center' });
-                    y = 125;
-                }
-                pdf.addImage(dataUrl, 'PNG', margin, y, pdfWidth, pdfHeight);
-                pdf.save('map.pdf');
-            })
-            .catch(function (error) {
-                alert('Error generating PDF: ' + error);
-            });
     });
 });
 </script>

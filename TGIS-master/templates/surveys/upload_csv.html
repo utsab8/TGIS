@@ -1,33 +1,194 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="max-w-lg mx-auto mt-10 bg-white rounded-xl shadow-lg p-8 animate-fade-in">
-  <h2 class="text-2xl font-bold mb-6 text-gray-800">Upload CSV File</h2>
-  <form method="post" enctype="multipart/form-data" class="space-y-6">
+<div class="max-w-lg mx-auto mt-12 bg-white rounded-2xl shadow-2xl p-10 relative overflow-hidden animate-fade-in">
+  <h2 class="text-3xl font-extrabold mb-8 text-blue-700 text-center relative z-10 animate-fade-in">Upload CSV File</h2>
+  <style>
+    /* Ensure the parent is positioned to contain the absolute child */
+    #drop-area {
+        position: relative;
+    }
+    /* Style the file input to be an invisible layer over the drop area */
+    #drop-area input[type="file"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+        z-index: 10;
+    }
+  </style>
+  <form id="csv-upload-form" method="post" enctype="multipart/form-data" class="space-y-8 relative z-10" onsubmit="this.querySelector('button[type=submit]').disabled=true; this.querySelector('button[type=submit]').textContent='Uploading...';">
     {% csrf_token %}
-    <div class="space-y-4">
-      {{ form.as_p|safe }}
-      <p class="text-sm text-gray-500 mt-2">Allowed file type: <strong>.csv</strong> | Max size: <strong>5MB</strong></p>
+    <div id="drop-area" class="flex flex-col items-center justify-center border-2 border-dashed border-blue-400 rounded-xl p-8 bg-blue-50 transition-all duration-300 hover:bg-blue-100 cursor-pointer animate-fade-in-up">
+      <span class="text-lg font-semibold text-blue-600">Drag & Drop your CSV file here</span>
+      <span class="text-sm text-gray-500 mt-2">or click to select a file</span>
+      {{ form.file }}
+      <p class="text-xs text-gray-400 mt-2">Allowed: <strong>.csv</strong> | Max: <strong>5MB</strong></p>
     </div>
-    <button type="submit" class="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition transform hover:scale-105">Upload</button>
+    <button type="submit" class="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-green-400 text-white font-bold rounded-xl shadow-lg hover:from-blue-600 hover:to-green-500 transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-300 animate-fade-in">Upload</button>
   </form>
-  <div id="progress-indicator" class="mt-4 text-blue-600 font-semibold animate-pulse hidden">Uploading...</div>
-  <p class="mt-6 text-center">
-    <a href="{% url 'csv_export' %}" class="text-blue-500 hover:underline font-medium">Download all survey records as CSV</a>
-  </p>
-  <p class="mt-2 text-center">
-    <a href="{% url 'download_all_surveys_kml' %}" class="text-green-600 hover:underline font-medium">Download all survey records as KML</a>
-  </p>
+  <!-- Map Preview Section -->
+  <div class="map-container mt-10 relative z-10 animate-fade-in-up" style="background: rgba(235, 237, 240, 0.5); border-radius: 25px; padding: 25px; border: 1px solid rgba(0, 0, 0, 0.1);">
+    <div class="map-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <h2 class="map-title" style="font-size: 1.8rem; font-weight: 700; color: #1e3a8a; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-globe-americas"></i>
+            Map Preview
+        </h2>
+    </div>
+    <div id="csv-map" style="height: 400px; width: 100%; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"></div>
+    <div id="map-message" class="text-center text-gray-500 mt-2">Select a CSV file to preview its data on the map.</div>
+  </div>
 </div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script>
-  // Show progress indicator on submit
-  document.querySelector('form').addEventListener('submit', function() {
-    document.getElementById('progress-indicator').classList.remove('hidden');
-  });
-  // Hide progress indicator on page load (in case of error/redirect)
-  window.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-      document.getElementById('progress-indicator').classList.add('hidden');
-    }, 2000);
-  });
+console.log("CSV upload page script loaded");
+
+// --- DOM ELEMENT REFERENCES ---
+const dropArea = document.getElementById('drop-area');
+const fileInput = dropArea.querySelector('input[type="file"]');
+const mapMessage = document.getElementById('map-message');
+
+// --- LEAFLET MAP & LAYERS ---
+let map, markerClusterGroup, shapeLayer;
+const shapeColors = ['#3388ff', '#e41a1c', '#4daf4a', '#984ea3', '#ff7f00'];
+let shapeIndex = 0;
+
+// --- MAP INITIALIZATION ---
+function initMap() {
+    if (map) return;
+    map = L.map('csv-map').setView([27.7, 85.3], 8);
+    const street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' });
+    L.control.layers({ "Street": street, "Satellite": satellite }).addTo(map);
+    markerClusterGroup = L.markerClusterGroup().addTo(map);
+    shapeLayer = L.layerGroup().addTo(map);
+    mapMessage.textContent = 'Select a CSV file to preview its data on the map.';
+    setTimeout(() => map.invalidateSize(), 300);
+}
+
+// --- CSV PARSING & MAP PREVIEW ---
+function handleCSVPreview(file) {
+    if (!file || !file.name.endsWith('.csv')) {
+        mapMessage.textContent = 'Please select a valid CSV file.';
+        return;
+    }
+    if (!map) initMap();
+    mapMessage.textContent = 'Parsing CSV file...';
+    
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+            const data = results.data;
+            if (!data.length) {
+                mapMessage.textContent = 'CSV file is empty or could not be parsed.';
+                return;
+            }
+
+            // Clear previous data
+            markerClusterGroup.clearLayers();
+            shapeLayer.clearLayers();
+            const bounds = L.latLngBounds();
+            shapeIndex = 0;
+            let pointCount = 0;
+            let shapeCount = 0;
+
+            // Auto-detect columns
+            const columns = Object.keys(data[0]);
+            const findCol = (options) => columns.find(c => options.includes(c.toLowerCase().trim()));
+            const latCol = findCol(['lat', 'latitude', 'y']);
+            const lonCol = findCol(['lon', 'long', 'longitude', 'x']);
+            const geomCol = findCol(['wkt', 'wkb', 'geom', 'geometry', 'the_geom', 'shape', 'polygon']);
+
+            data.forEach(row => {
+                // 1. Draw points from Lat/Lon
+                if (latCol && lonCol) {
+                    const lat = parseFloat(row[latCol]);
+                    const lon = parseFloat(row[lonCol]);
+                    if (!isNaN(lat) && !isNaN(lon)) {
+                        const marker = L.marker([lat, lon]);
+                        marker.bindPopup(Object.entries(row).map(([k,v]) => `<b>${k}:</b> ${v}`).join('<br>'));
+                        markerClusterGroup.addLayer(marker);
+                        bounds.extend([lat, lon]);
+                        pointCount++;
+                    }
+                }
+                // 2. Draw shapes from a geometry column
+                if (geomCol && row[geomCol]) {
+                    const layer = parseGeometry(row[geomCol]);
+                    if (layer) {
+                        layer.setStyle({ color: shapeColors[shapeIndex % shapeColors.length], weight: 2, opacity: 0.8, fillOpacity: 0.3 });
+                        layer.bindPopup(Object.entries(row).map(([k,v]) => `<b>${k}:</b> ${v}`).join('<br>'));
+                        shapeLayer.addLayer(layer);
+                        bounds.extend(layer.getBounds());
+                        shapeIndex++;
+                        shapeCount++;
+                    }
+                }
+            });
+
+            // Update map view and messages
+            if (bounds.isValid()) {
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
+                mapMessage.textContent = `Previewing ${pointCount} points and ${shapeCount} shapes.`;
+            } else {
+                mapMessage.textContent = 'No valid geographic data found in the selected file.';
+            }
+        },
+        error: function(err) {
+            mapMessage.textContent = 'Error parsing CSV: ' + err.message;
+        }
+    });
+}
+
+// --- HELPER to parse WKT/GeoJSON ---
+function parseGeometry(geomString) {
+    if (typeof geomString !== 'string') return null;
+    try {
+        return L.geoJSON(JSON.parse(geomString));
+    } catch (e) {
+        const str = geomString.toUpperCase();
+        if (str.startsWith('POLYGON')) {
+            const coords = str.replace(/POLYGON\s*\(\s*\(/, '').replace(/\)\s*\)/, '').split(',').map(p => p.trim().split(/\s+/).map(Number).reverse());
+            return L.polygon(coords);
+        }
+        if (str.startsWith('LINESTRING')) {
+             const coords = str.replace(/LINESTRING\s*\(/, '').replace(/\)/, '').split(',').map(p => p.trim().split(/\s+/).map(Number).reverse());
+            return L.polyline(coords);
+        }
+    }
+    return null;
+}
+
+// --- INITIAL EVENT LISTENERS ---
+window.addEventListener('DOMContentLoaded', initMap);
+fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) handleCSVPreview(fileInput.files[0]);
+});
+
+// Drag and Drop listeners
+dropArea.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropArea.classList.add('bg-blue-200', 'border-blue-600');
+});
+dropArea.addEventListener('dragleave', e => {
+  e.preventDefault();
+  dropArea.classList.remove('bg-blue-200', 'border-blue-600');
+});
+dropArea.addEventListener('drop', e => {
+  e.preventDefault();
+  dropArea.classList.remove('bg-blue-200', 'border-blue-600');
+  if (e.dataTransfer.files.length) {
+    fileInput.files = e.dataTransfer.files;
+    handleCSVPreview(fileInput.files[0]);
+  }
+});
 </script>
 {% endblock %}

@@ -13,8 +13,33 @@
         .fade-in { animation: fadeIn 1s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .navbar-anim:hover { transform: scale(1.05) rotate(-2deg); transition: 0.2s; }
+        /* Force Leaflet map container to display correctly */
+        #csv-map {
+            height: 350px !important;
+            width: 100% !important;
+            position: relative !important;
+            box-sizing: border-box !important;
+            display: block !important;
+            overflow: hidden !important;
+        }
+        #csv-map .leaflet-container {
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
+            background: #e0e7ef !important;
+            box-sizing: border-box !important;
+            z-index: 1;
+            position: static !important;
+            overflow: hidden !important;
+        }
+        .leaflet-control.info.legend {
+            z-index: 9999 !important;
+            overflow: visible !important;
+        }
     </style>
     {% block extra_css %}{% endblock %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
 </head>
 <body class="bg-gray-50 min-h-screen">
     <nav class="bg-white shadow-md sticky top-0 z-50 fade-in">
@@ -25,9 +50,7 @@
                 <a href="/surveys/upload-csv/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Upload CSV</a>
                 <a href="/land-parser/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Upload KML</a>
                 <a href="/surveys/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Survey List</a>
-                <a href="/surveys/search/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Search</a>
                 <a href="/surveys/map-view/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Map View</a>
-                <a href="/surveys/pdf-report/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">PDF Report</a>
                 <a href="/land-parser/help/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">KML Help</a>
             </div>
             <div class="flex items-center space-x-2">
@@ -80,5 +103,212 @@
         {% endif %}
         {% block content %}{% endblock %}
     </div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+    <script>
+if (window.location.pathname === '/surveys/upload-csv/') {
+  console.log("CSV upload page script loaded");
+  window.addEventListener('DOMContentLoaded', function() {
+    console.log("DOMContentLoaded event fired");
+    initMap();
+    setupCSVPreview();
+  });
+  let map, markerLayer, shapeLayer, clusterLayer;
+  function initMap() {
+    console.log("initMap called");
+    if (map) return; // Prevent multiple maps
+    const mapDiv = document.getElementById('csv-map');
+    console.log("Map container exists:", !!mapDiv, mapDiv);
+    // Fix Leaflet's default icon paths to use CDN
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+    });
+    map = L.map('csv-map').setView([27.7, 85.3], 8);
+    console.log("Map object created:", map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    markerLayer = L.layerGroup(); // not added directly
+    clusterLayer = L.markerClusterGroup();
+    shapeLayer = L.layerGroup().addTo(map);
+    try {
+      console.log("Adding cluster layer...");
+      clusterLayer.addTo(map);
+      console.log("Cluster layer added.");
+    } catch (e) {
+      console.error("Error adding cluster layer:", e);
+    }
+    let defaultMarker = L.marker([27.7, 85.3]);
+    defaultMarker.bindPopup('Default location: Kathmandu').openPopup();
+    clusterLayer.addLayer(defaultMarker);
+    var msg = document.getElementById('map-message');
+    if (msg) msg.textContent = 'Select a CSV file with latitude and longitude columns to preview points or polygons on the map.';
+    // Add legend
+    try {
+      console.log("Adding legend...");
+      if (document.getElementById('csv-map')) {
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function(map) {
+          var div = L.DomUtil.create('div', 'info legend');
+          div.style.background = 'white';
+          div.style.padding = '8px 16px';
+          div.style.borderRadius = '8px';
+          div.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+          div.innerHTML = '<b>Legend</b><br>' +
+            '<i style="background:#2563eb;width:14px;height:14px;display:inline-block;border-radius:50%;margin-right:6px;"></i> Point<br>' +
+            '<i style="background:#22c55e;width:14px;height:14px;display:inline-block;margin-right:6px;"></i> Polygon<br>' +
+            '<i style="background:#f59e42;width:14px;height:4px;display:inline-block;margin-right:6px;vertical-align:middle;"></i> Line';
+          return div;
+        };
+        legend.addTo(map);
+        console.log("Legend added.");
+      }
+    } catch (e) {
+      console.error("Error adding legend:", e);
+    }
+    setTimeout(() => { map.invalidateSize(); console.log("Map invalidated size (init)"); }, 500);
+    window.addEventListener('resize', function() { map.invalidateSize(); console.log("Map invalidated size (resize)"); });
+  }
+  function setupCSVPreview() {
+    const dropArea = document.getElementById('drop-area');
+    if (!dropArea) return;
+    const fileInput = dropArea.querySelector('input[type="file"]');
+    dropArea.addEventListener('click', () => fileInput.click());
+    dropArea.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropArea.classList.add('bg-blue-200', 'border-blue-600');
+    });
+    dropArea.addEventListener('dragleave', e => {
+      e.preventDefault();
+      dropArea.classList.remove('bg-blue-200', 'border-blue-600');
+    });
+    dropArea.addEventListener('drop', e => {
+      e.preventDefault();
+      dropArea.classList.remove('bg-blue-200', 'border-blue-600');
+      fileInput.files = e.dataTransfer.files;
+      handleCSVPreview(fileInput.files[0]);
+    });
+    fileInput.addEventListener('change', function() {
+      if (fileInput.files.length) handleCSVPreview(fileInput.files[0]);
+    });
+  }
+  function handleCSVPreview(file) {
+    if (!file || !file.name.endsWith('.csv')) return;
+    if (!map) initMap();
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        const data = results.data;
+        if (!data.length) {
+          document.getElementById('map-message').textContent = 'CSV file is empty.';
+          markerLayer.clearLayers();
+          clusterLayer.clearLayers();
+          shapeLayer.clearLayers();
+          return;
+        }
+        // Try to find lat/lon columns
+        const columns = Object.keys(data[0]);
+        let latCol = columns.find(c => c.toLowerCase().includes('lat'));
+        let lonCol = columns.find(c => c.toLowerCase().includes('lon'));
+        let geomCol = columns.find(c => c.toLowerCase().includes('wkt') || c.toLowerCase().includes('geometry') || c.toLowerCase().includes('geojson'));
+        let bounds = [];
+        markerLayer.clearLayers();
+        clusterLayer.clearLayers();
+        shapeLayer.clearLayers();
+        let hasData = false;
+        // Draw points (blue, clustered, use L.marker with custom icon)
+        if (latCol && lonCol) {
+          const blueIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+          });
+          data.forEach(row => {
+            let lat = parseFloat(row[latCol]);
+            let lon = parseFloat(row[lonCol]);
+            if (!isNaN(lat) && !isNaN(lon)) {
+              let marker = L.marker([lat, lon], { icon: blueIcon });
+              marker.bindPopup('<b>Point</b><br>' + columns.map(col => `<b>${col}:</b> ${row[col]}`).join('<br>'));
+              marker.on('mouseover', function(e) { marker.openPopup(); });
+              marker.on('mouseout', function(e) { marker.closePopup(); });
+              markerLayer.addLayer(marker);
+              bounds.push([lat, lon]);
+              hasData = true;
+            }
+          });
+          clusterLayer.addLayer(markerLayer);
+        }
+        // Draw polygons/lines if WKT or GeoJSON present
+        if (geomCol) {
+          data.forEach(row => {
+            let geom = row[geomCol];
+            if (geom) {
+              let layer = null;
+              // Try GeoJSON first
+              try {
+                let geo = typeof geom === 'string' ? JSON.parse(geom) : geom;
+                layer = L.geoJSON(geo, {
+                  style: function(feature) {
+                    if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
+                      return { color: '#22c55e', fillColor: '#bbf7d0', fillOpacity: 0.5, weight: 3 }; // green
+                    } else if (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString') {
+                      return { color: '#f59e42', weight: 4 }; // orange
+                    }
+                  },
+                  onEachFeature: function(feature, lyr) {
+                    lyr.bindPopup('<b>' + feature.geometry.type + '</b><br>' + columns.map(col => `<b>${col}:</b> ${row[col]}`).join('<br>'));
+                  }
+                });
+              } catch (e) {
+                // Try WKT (simple parser for Polygon/LineString)
+                if (geom.startsWith('POLYGON')) {
+                  let coords = geom.match(/\(\((.*)\)\)/)[1].split(',').map(pair => pair.trim().split(' ').map(Number));
+                  layer = L.polygon(coords.map(c => [c[1], c[0]]), { color: '#22c55e', fillColor: '#bbf7d0', fillOpacity: 0.5, weight: 3 });
+                  layer.bindPopup('<b>Polygon</b><br>' + columns.map(col => `<b>${col}:</b> ${row[col]}`).join('<br>'));
+                } else if (geom.startsWith('LINESTRING')) {
+                  let coords = geom.match(/\((.*)\)/)[1].split(',').map(pair => pair.trim().split(' ').map(Number));
+                  layer = L.polyline(coords.map(c => [c[1], c[0]]), { color: '#f59e42', weight: 4 });
+                  layer.bindPopup('<b>LineString</b><br>' + columns.map(col => `<b>${col}:</b> ${row[col]}`).join('<br>'));
+                }
+              }
+              if (layer) {
+                layer.addTo(shapeLayer);
+                if (layer.getBounds) bounds.push(...layer.getBounds().getLatLngs().flat());
+                hasData = true;
+              }
+            }
+          });
+        }
+        if (bounds.length) {
+          map.fitBounds(bounds, {padding: [30,30]});
+          document.getElementById('map-message').textContent = '';
+        } else if (!hasData) {
+          document.getElementById('map-message').textContent = 'No valid coordinates or shapes to display. Please check your CSV data.';
+          // Show default marker again
+          let defaultMarker = L.marker([27.7, 85.3]);
+          defaultMarker.bindPopup('Default location: Kathmandu').openPopup();
+          clusterLayer.addLayer(defaultMarker);
+        }
+        setTimeout(() => { map.invalidateSize(); console.log("Map invalidated size (csv preview)"); }, 500);
+      },
+      error: function(err) {
+        document.getElementById('map-message').textContent = 'Error parsing CSV: ' + err.message;
+        markerLayer.clearLayers();
+        clusterLayer.clearLayers();
+        shapeLayer.clearLayers();
+      }
+    });
+  }
+}
+</script>
 </body>
+<!-- Remove debug map script -->
 </html>

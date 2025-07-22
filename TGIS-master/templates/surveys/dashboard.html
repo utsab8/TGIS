@@ -8,6 +8,10 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+    html {
+        scroll-behavior: smooth;
+    }
+
     * {
         margin: 0;
         padding: 0;
@@ -792,6 +796,7 @@
                 </h3>
                 <div class="chart-canvas">
                     <canvas id="landTypeChart"></canvas>
+                    <script id="land-type-data" type="application/json">{{ land_type_stats|json_script:"land-type-data" }}</script>
                 </div>
             </div>
 
@@ -883,8 +888,9 @@ var markers = L.markerClusterGroup({
 });
 
 // Survey points data
-var surveyPoints = {{ survey_points|safe }};
-var boundaryData = {{ boundary_data|safe }};
+var surveyPoints = JSON.parse('{{ survey_points_json|escapejs }}');
+var boundaryData = JSON.parse('{{ boundary_data_json|escapejs }}');
+const landTypeData = JSON.parse('{{ land_type_stats_json|escapejs }}');
 
 // Add survey points with enhanced styling
 surveyPoints.forEach(function(point) {
@@ -940,7 +946,6 @@ boundaryData.forEach(function(boundary) {
 });
 
 // Enhanced Chart.js configuration
-var landTypeData = {{ land_type_stats|safe }};
 var ctx = document.getElementById('landTypeChart').getContext('2d');
 
 var landTypeChart = new Chart(ctx, {
@@ -1034,14 +1039,6 @@ document.querySelectorAll('.stats-card').forEach(function(card, index) {
 setInterval(function() {
     console.log('Auto-refresh triggered');
 }, 60000);
-
-// Add smooth scrolling and parallax effects
-window.addEventListener('scroll', function() {
-    var scrolled = window.pageYOffset;
-    var parallax = document.querySelector('.dashboard-container');
-    var speed = scrolled * 0.3;
-    parallax.style.transform = 'translateY(' + speed + 'px)';
-});
 
 // Add loading animation for data
 function showLoading(element) {

@@ -1,5 +1,17 @@
 from django.urls import path
-from .views import csv_upload_view, csv_export_view, attachment_upload_view, attachment_delete_view, survey_search_view, dashboard_analytics_api, boundary_completeness_report, area_coverage_report, export_excel_report, user_activity_api, coverage_map_data, advanced_search_api, pdf_report_view, SurveyRecordViewSet, CSVUploadAPIView, export_kml_api, survey_search_api, boundary_search_api, spatial_query_api, google_earth_link_api, kml_export_google_earth_api, dashboard_stats_api, dashboard_coverage_api, survey_list_view, survey_add_view, map_view, survey_edit_view, survey_delete_view, csv_to_kml_view, download_generated_kml, download_all_surveys_kml, dashboard_view, csv_to_kml_from_mapping, download_error_report, help_view
+from .views import (
+    csv_upload_view, csv_export_view, attachment_upload_view, 
+    attachment_delete_view, dashboard_analytics_api, 
+    boundary_completeness_report, area_coverage_report, export_excel_report, 
+    user_activity_api, coverage_map_data, advanced_search_api, 
+    SurveyRecordViewSet, CSVUploadAPIView, export_kml_api, 
+    spatial_query_api, google_earth_link_api, 
+    kml_export_google_earth_api, dashboard_stats_api, dashboard_coverage_api, 
+    survey_list_view, survey_add_view, map_view, survey_edit_view, 
+    survey_delete_view, download_generated_kml, 
+    download_all_surveys_kml, dashboard_view, download_error_report, 
+    help_view, advanced_csv_upload
+)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -16,10 +28,6 @@ urlpatterns = [
 ]
 
 urlpatterns += [
-    path('search/', survey_search_view, name='survey_search'),
-]
-
-urlpatterns += [
     path('api/dashboard-analytics/', dashboard_analytics_api, name='dashboard_analytics_api'),
 ]
 
@@ -32,24 +40,10 @@ urlpatterns += [
 ]
 
 urlpatterns += [
-    path('api/advanced-search/', advanced_search_api, name='advanced_search_api'),
-]
-
-urlpatterns += [
-    path('pdf-report/', pdf_report_view, name='pdf_report_batch'),
-    path('pdf-report/<int:survey_id>/', pdf_report_view, name='pdf_report'),
-]
-
-urlpatterns += router.urls
-
-urlpatterns += [
-    # File Upload API
     path('api/v1/surveys/upload-csv/', CSVUploadAPIView.as_view(), name='api_upload_csv'),
     path('api/v1/surveys/export-kml/', export_kml_api, name='api_export_kml'),
 
     # Search API
-    path('api/v1/surveys/search/', survey_search_api, name='api_survey_search'),
-    path('api/v1/surveys/boundary-search/', boundary_search_api, name='api_boundary_search'),
     path('api/v1/surveys/spatial-query/', spatial_query_api, name='api_spatial_query'),
 
     # Google Earth Integration
@@ -73,7 +67,6 @@ urlpatterns += [
 ]
 
 urlpatterns += [
-    path('csv-to-kml/', csv_to_kml_view, name='csv_to_kml'),
     path('download-generated-kml/', download_generated_kml, name='download_generated_kml'),
 ]
 
@@ -82,13 +75,14 @@ urlpatterns += [
 ]
 
 urlpatterns += [
-    path('csv-to-kml-from-mapping/', csv_to_kml_from_mapping, name='csv_to_kml_from_mapping'),
-]
-
-urlpatterns += [
     path('download-error-report/', download_error_report, name='download_error_report'),
 ]
 
 urlpatterns += [
     path('help/', help_view, name='help'),
+]
+
+urlpatterns += [
+    path('advanced-csv-upload/', advanced_csv_upload, name='advanced_csv_upload'),
+    path('dashboard/', dashboard_view, name='dashboard'),
 ]
