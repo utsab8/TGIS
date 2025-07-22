@@ -33,18 +33,19 @@ from django.utils.encoding import smart_str
 import pandas as pd
 from django import template
 register = template.Library()
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, AllowAny
-from .serializers import SurveyRecordSerializer, FileAttachmentSerializer
+from .serializers import SurveyRecordSerializer, FileAttachmentSerializer, BoundarySerializer
 import tempfile
 from decimal import Decimal
 import json
 from datetime import datetime
 import uuid
+from django_filters.rest_framework import DjangoFilterBackend
 
 @register.filter
 def get_item(dictionary, key):
@@ -357,6 +358,13 @@ class SurveyRecordViewSet(viewsets.ModelViewSet):
     queryset = SurveyRecord.objects.all()
     serializer_class = SurveyRecordSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = {
+        'owner_name': ['icontains', 'exact'],
+        'kitta_number': ['icontains', 'exact'],
+        'area_size': ['gte', 'lte', 'exact'],
+    }
+    search_fields = ['owner_name', 'kitta_number', 'land_type']
 
 class CSVUploadAPIView(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -401,6 +409,55 @@ def dashboard_stats_api(request):
 @api_view(['GET'])
 def dashboard_coverage_api(request):
     return Response({'message': 'Dashboard coverage API endpoint'})
+
+@api_view(['GET', 'POST', 'DELETE', 'PUT'])
+def boundaries_geojson_api(request, pk=None):
+    from .models import Boundary, SurveyRecord
+    if request.method == 'POST':
+        data = request.data
+        survey_id = data.get('survey_record')
+        geojson = data.get('geojson')
+        if not survey_id or not geojson:
+            return Response({'error': 'survey_record and geojson required'}, status=400)
+        try:
+            survey = SurveyRecord.objects.get(id=survey_id)
+            boundary = Boundary.objects.create(survey_record=survey, geojson=geojson)
+            return Response({'id': boundary.id}, status=201)
+        except SurveyRecord.DoesNotExist:
+            return Response({'error': 'SurveyRecord not found'}, status=404)
+    if request.method == 'DELETE' and pk:
+        try:
+            boundary = Boundary.objects.get(id=pk)
+            boundary.delete()
+            return Response({'status': 'deleted'})
+        except Boundary.DoesNotExist:
+            return Response({'error': 'Boundary not found'}, status=404)
+    if request.method == 'PUT' and pk:
+        data = request.data
+        geojson = data.get('geojson')
+        if not geojson:
+            return Response({'error': 'geojson required'}, status=400)
+        try:
+            boundary = Boundary.objects.get(id=pk)
+            boundary.geojson = geojson
+            boundary.save()
+            return Response({'status': 'updated'})
+        except Boundary.DoesNotExist:
+            return Response({'error': 'Boundary not found'}, status=404)
+    # GET: return all boundaries as GeoJSON
+    boundaries = Boundary.objects.all()
+    features = []
+    for b in boundaries:
+        features.append({
+            'type': 'Feature',
+            'geometry': b.geojson,
+            'properties': {
+                'id': b.id,
+                'survey_record': b.survey_record_id,
+                'created_at': b.created_at.isoformat(),
+            }
+        })
+    return Response({'type': 'FeatureCollection', 'features': features})
 
 def survey_list_view(request):
     records = SurveyRecord.objects.all().order_by('-created_at')

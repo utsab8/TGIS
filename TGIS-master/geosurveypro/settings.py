@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'accounts',
     'surveys',
     'land_parser',
+    'django_filters',
 ]
 
 MIDDLEWARE = [

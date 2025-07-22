@@ -3,6 +3,13 @@
     {{ form.as_p }}
     <button type="submit">Convert to KML</button>
 </form>
+<!-- CSV Help Button -->
+<div class="w-full flex justify-end mt-2 mb-4">
+    <a href="{% url 'help' %}" target="_blank" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors">
+        <i class="bi bi-question-circle mr-2"></i>
+        CSV Help & Documentation
+    </a>
+</div>
 {% if kml_available %}
     <p><a href="{% url 'download_generated_kml' %}">Download KML</a></p>
 {% endif %} 

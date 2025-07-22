@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
+from django.views.generic import TemplateView
 
 def home_redirect(request):
     return redirect('dashboard')
@@ -27,5 +28,6 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('surveys/', include('surveys.urls')),
     path('land-parser/', include('land_parser.urls')),
+    path('upload/', TemplateView.as_view(template_name='upload.html'), name='upload'),
     path('', login_required(home_redirect), name='home'),
 ]

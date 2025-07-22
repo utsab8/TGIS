@@ -23,10 +23,24 @@
             <label class="block text-gray-700 font-semibold mb-1">Area (min m²)</label>
             <input id="areaFilter" type="number" min="0" class="w-full px-2 py-1 border rounded focus:ring-2 focus:ring-blue-300" placeholder="Min area...">
         </div>
-        <!-- Export Buttons -->
+        <div class="flex gap-2 mb-2 items-center">
+            <button id="clearFiltersBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-1 px-2 rounded shadow transition">Clear Filters</button>
+            <span id="filteredCount" class="text-xs text-blue-700 ml-2"></span>
+        </div>
+        <!-- Overlay Toggles -->
+        <div class="mb-4">
+            <label class="block text-gray-700 font-semibold mb-1">Overlays</label>
+            <div class="flex gap-2">
+                <label class="flex items-center gap-1"><input type="checkbox" id="toggleBoundaries" checked> Boundaries</label>
+                <label class="flex items-center gap-1"><input type="checkbox" id="toggleHeatmap"> Heatmap</label>
+            </div>
+        </div>
+        <!-- Export & Share Buttons -->
         <div class="flex gap-2 mb-2">
             <button id="exportSelectedBtn" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-2 rounded shadow transition">Export Selected CSV</button>
             <button id="exportMapBtn" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-2 rounded shadow transition">Export Map Image</button>
+            <button id="exportPdfBtn" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-1 px-2 rounded shadow transition">Export PDF</button>
+            <button id="shareLinkBtn" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-1 px-2 rounded shadow transition">Share Link</button>
         </div>
         <!-- Parcel List -->
         <div class="flex-1 overflow-y-auto max-h-64">
@@ -84,10 +98,25 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <!-- dom-to-image for map export -->
 <script src="https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/dist/dom-to-image.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.heat/dist/leaflet-heat.js"></script>
 
 <script>
-const records = JSON.parse('{{ records|safe|escapejs }}');
+let records = [];
 let selectedParcels = [];
+
+async function fetchRecords() {
+    const owner = document.getElementById('ownerFilter').value;
+    const kitta = document.getElementById('kittaFilter').value;
+    const area = document.getElementById('areaFilter').value;
+    let url = '/api/v1/surveys/?';
+    if (owner) url += `owner_name__icontains=${encodeURIComponent(owner)}&`;
+    if (kitta) url += `kitta_number__icontains=${encodeURIComponent(kitta)}&`;
+    if (area) url += `area_size__gte=${encodeURIComponent(area)}&`;
+    const res = await fetch(url);
+    const data = await res.json();
+    records = data.results || data;
+}
 
 function getMarkerIcon(area) {
     // Custom marker color by area size
@@ -162,13 +191,19 @@ function renderParcelList(filtered) {
     });
 }
 
-function renderMap(filtered) {
+async function renderMap(filtered) {
     if (window._map) window._map.remove();
     const map = L.map('map').setView([27.7, 85.3], 8);
     window._map = map;
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
+    // --- Map Layer Switcher ---
+    const street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' });
+    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles © Esri' });
+    const terrain = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '© OpenTopoMap contributors' });
+    const baseMaps = { "Street": street, "Satellite": satellite, "Terrain": terrain };
+    L.control.layers(baseMaps, null, { position: 'topright', collapsed: false }).addTo(map);
     const markers = L.markerClusterGroup();
     window._markers = [];
     filtered.forEach((r, i) => {
@@ -209,6 +244,57 @@ function renderMap(filtered) {
         selectedParcels = [];
         highlightSelectedMarkers([]);
     });
+    // --- Boundaries (real data) ---
+    boundaryLayer = L.layerGroup();
+    const res = await fetch('/api/v1/boundaries/');
+    const geojson = await res.json();
+    L.geoJSON(geojson, {
+        style: {color:'#a78bfa', fillOpacity:0.2},
+        onEachFeature: function(feature, layer) {
+            layer.bindPopup('Boundary ID: ' + feature.properties.id);
+            addBoundaryDeleteHandler(layer, feature);
+            addBoundaryEditHandler(layer, feature);
+            boundaryLayer.addLayer(layer);
+        }
+    });
+    if (document.getElementById('toggleBoundaries').checked) map.addLayer(boundaryLayer);
+    // --- Heatmap (dummy, replace with real API) ---
+    heatLayer = L.heatLayer(filtered.filter(r=>r.lat&&r.lon).map(r=>[parseFloat(r.lat),parseFloat(r.lon),1]), {radius:25, blur:15, gradient:{0.4:'blue',0.65:'lime',1:'red'}});
+    if (document.getElementById('toggleHeatmap').checked) map.addLayer(heatLayer);
+
+    // --- Drawing and Saving Boundaries ---
+    map.on('draw:created', async function (e) {
+        if (e.layerType === 'polygon') {
+            const geojson = e.layer.toGeoJSON().geometry;
+            // Prompt user to select a survey record (simple prompt for now)
+            const kitta = prompt('Enter Kitta Number for this boundary:');
+            if (!kitta) return alert('Kitta Number is required!');
+            // Find survey record by kitta number
+            let surveyId = null;
+            try {
+                const res = await fetch(`/api/v1/surveys/?kitta_number=${encodeURIComponent(kitta)}`);
+                const data = await res.json();
+                if (data.results && data.results.length) surveyId = data.results[0].id;
+            } catch (err) { alert('Error finding survey record.'); return; }
+            if (!surveyId) return alert('No survey record found for that Kitta Number!');
+            // Save boundary
+            const saveRes = await fetch('/api/v1/boundaries/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ survey_record: surveyId, geojson })
+            });
+            if (saveRes.ok) {
+                const msg = document.createElement('div');
+                msg.textContent = 'Boundary saved!';
+                msg.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50 animate-fade-in';
+                document.body.appendChild(msg);
+                setTimeout(()=>msg.remove(), 2000);
+                await updateAll(); // Refresh overlays
+            } else {
+                alert('Failed to save boundary.');
+            }
+        }
+    });
 }
 
 function selectParcelsInShape(layer, filtered) {
@@ -237,6 +323,77 @@ function highlightSelectedMarkers(selectedIdx) {
     });
 }
 
+// --- Add boundary deletion on popup ---
+function addBoundaryDeleteHandler(layer, feature) {
+    layer.on('popupopen', function() {
+        const popup = layer.getPopup();
+        const content = popup.getContent();
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Delete Boundary';
+        delBtn.className = 'mt-2 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow';
+        delBtn.onclick = async function() {
+            if (confirm('Delete this boundary?')) {
+                const res = await fetch(`/api/v1/boundaries/${feature.properties.id}/`, { method: 'DELETE' });
+                if (res.ok) {
+                    popup.setContent('Boundary deleted!');
+                    setTimeout(updateAll, 1000);
+                } else {
+                    alert('Failed to delete boundary.');
+                }
+            }
+        };
+        setTimeout(() => {
+            const popupEl = popup._contentNode;
+            if (popupEl && !popupEl.querySelector('button')) popupEl.appendChild(delBtn);
+        }, 100);
+    });
+}
+
+// --- Add boundary editing ---
+let editingBoundary = null;
+function addBoundaryEditHandler(layer, feature) {
+    layer.on('popupopen', function() {
+        const popup = layer.getPopup();
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit Boundary';
+        editBtn.className = 'mt-2 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded shadow ml-2';
+        editBtn.onclick = function() {
+            if (editingBoundary) {
+                alert('Finish editing the current boundary first!');
+                return;
+            }
+            editingBoundary = layer;
+            layer.editing.enable();
+            popup.setContent('Editing... <button id="saveEditBtn" class="ml-2 bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded shadow">Save</button>');
+            setTimeout(() => {
+                document.getElementById('saveEditBtn').onclick = async function() {
+                    const geojson = layer.toGeoJSON().geometry;
+                    const res = await fetch(`/api/v1/boundaries/${feature.properties.id}/`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ geojson })
+                    });
+                    if (res.ok) {
+                        const msg = document.createElement('div');
+                        msg.textContent = 'Boundary updated!';
+                        msg.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded shadow-lg z-50 animate-fade-in';
+                        document.body.appendChild(msg);
+                        setTimeout(()=>msg.remove(), 2000);
+                        editingBoundary = null;
+                        await updateAll();
+                    } else {
+                        alert('Failed to update boundary.');
+                    }
+                };
+            }, 100);
+        };
+        setTimeout(() => {
+            const popupEl = popup._contentNode;
+            if (popupEl && !popupEl.querySelector('button.edit-btn')) popupEl.appendChild(editBtn);
+        }, 100);
+    });
+}
+
 // --- Export Selected as CSV ---
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('exportSelectedBtn').onclick = function() {
@@ -259,6 +416,9 @@ document.addEventListener('DOMContentLoaded', function() {
         URL.revokeObjectURL(url);
     };
     document.getElementById('exportMapBtn').onclick = function() {
+        const btn = this;
+        btn.innerHTML = '<span class="animate-spin inline-block mr-2">⏳</span>Exporting...';
+        btn.disabled = true;
         domtoimage.toPng(document.getElementById('map')).then(function(dataUrl) {
             const a = document.createElement('a');
             a.href = dataUrl;
@@ -266,6 +426,14 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+            btn.innerHTML = 'Export Map Image';
+            btn.disabled = false;
+            // Show success message
+            const msg = document.createElement('div');
+            msg.textContent = 'Map image exported!';
+            msg.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50 animate-fade-in';
+            document.body.appendChild(msg);
+            setTimeout(()=>msg.remove(), 2000);
         });
     };
 });
@@ -288,12 +456,72 @@ document.addEventListener('DOMContentLoaded', function() {
     updateAll();
 });
 
-function updateAll() {
-    const filtered = filterRecords();
+document.getElementById('clearFiltersBtn').onclick = function() {
+    document.getElementById('ownerFilter').value = '';
+    document.getElementById('kittaFilter').value = '';
+    document.getElementById('areaFilter').value = '';
+    updateAll();
+};
+
+async function updateAll() {
+    await fetchRecords();
+    const filtered = records;
     updateStats(filtered);
     updateCharts(filtered);
     renderParcelList(filtered);
     renderMap(filtered);
+    document.getElementById('filteredCount').textContent = `${filtered.length} parcels shown`;
 }
+
+// --- Overlay and Export/Share Feature JS ---
+let boundaryLayer, heatLayer;
+document.getElementById('toggleBoundaries').addEventListener('change', function(e) {
+    if (boundaryLayer) {
+        if (e.target.checked) window._map.addLayer(boundaryLayer);
+        else window._map.removeLayer(boundaryLayer);
+    }
+});
+document.getElementById('toggleHeatmap').addEventListener('change', function(e) {
+    if (heatLayer) {
+        if (e.target.checked) window._map.addLayer(heatLayer);
+        else window._map.removeLayer(heatLayer);
+    }
+});
+// --- PDF Export ---
+document.getElementById('exportPdfBtn').onclick = function() {
+    const btn = this;
+    btn.innerHTML = '<span class="animate-spin inline-block mr-2">⏳</span>Exporting...';
+    btn.disabled = true;
+    domtoimage.toPng(document.getElementById('map')).then(function(dataUrl) {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [900, 600] });
+        pdf.text('Survey Map Snapshot', 30, 40);
+        pdf.addImage(dataUrl, 'PNG', 30, 60, 800, 400);
+        pdf.save('map_snapshot.pdf');
+        btn.innerHTML = 'Export PDF';
+        btn.disabled = false;
+        const msg = document.createElement('div');
+        msg.textContent = 'PDF exported!';
+        msg.className = 'fixed top-4 right-4 bg-purple-500 text-white px-4 py-2 rounded shadow-lg z-50 animate-fade-in';
+        document.body.appendChild(msg);
+        setTimeout(()=>msg.remove(), 2000);
+    });
+};
+// --- Shareable Link ---
+document.getElementById('shareLinkBtn').onclick = function() {
+    const url = window.location.href.split('?')[0];
+    const params = new URLSearchParams();
+    params.set('owner', document.getElementById('ownerFilter').value);
+    params.set('kitta', document.getElementById('kittaFilter').value);
+    params.set('area', document.getElementById('areaFilter').value);
+    const shareUrl = url + '?' + params.toString();
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        const msg = document.createElement('div');
+        msg.textContent = 'Shareable link copied!';
+        msg.className = 'fixed top-4 right-4 bg-yellow-500 text-white px-4 py-2 rounded shadow-lg z-50 animate-fade-in';
+        document.body.appendChild(msg);
+        setTimeout(()=>msg.remove(), 2000);
+    });
+};
 </script>
 {% endblock %} 

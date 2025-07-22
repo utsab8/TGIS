@@ -29,6 +29,13 @@
     </div>
     <button type="submit" class="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-green-400 text-white font-bold rounded-xl shadow-lg hover:from-blue-600 hover:to-green-500 transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-300 animate-fade-in">Upload</button>
   </form>
+  <!-- CSV Help Button -->
+  <div class="w-full flex justify-end mt-2 mb-4">
+    <a href="{% url 'help' %}" target="_blank" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors">
+      <i class="bi bi-question-circle mr-2"></i>
+      CSV Help & Documentation
+    </a>
+  </div>
   <!-- Map Preview Section -->
   <div class="map-container mt-10 relative z-10 animate-fade-in-up" style="background: rgba(235, 237, 240, 0.5); border-radius: 25px; padding: 25px; border: 1px solid rgba(0, 0, 0, 0.1);">
     <div class="map-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">

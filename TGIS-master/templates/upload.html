@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="min-h-[60vh] flex flex-col justify-center items-center bg-gradient-to-br from-blue-50 to-green-50 py-16 animate-fade-in">
+  <h1 class="text-4xl md:text-5xl font-extrabold text-gray-800 mb-4 tracking-tight animate-slide-down">Upload Data</h1>
+  <p class="text-lg text-gray-500 mb-12 animate-fade-in delay-100">Choose the type of data you want to upload to GeoSurveyPro</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-12 w-full max-w-4xl">
+    <a href="/land-parser/" class="group relative block bg-white rounded-3xl shadow-2xl p-10 overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 animate-fade-in-up">
+      <div class="absolute -top-8 -right-8 bg-blue-100 rounded-full p-6 group-hover:scale-110 transition-transform duration-300">
+        <svg class="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      </div>
+      <h3 class="text-2xl font-bold mb-2 text-blue-700 group-hover:text-blue-800 transition-colors duration-200">Upload KML</h3>
+      <p class="text-gray-500 mb-6">Import your KML files to visualize and analyze geospatial data.</p>
+      <span class="inline-block px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow transition-all duration-200 group-hover:scale-105">Go to KML Upload</span>
+      <div class="absolute inset-0 bg-blue-50 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-3xl pointer-events-none"></div>
+    </a>
+    <a href="/surveys/upload-csv/" class="group relative block bg-white rounded-3xl shadow-2xl p-10 overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:-translate-y-2 animate-fade-in-up delay-100">
+      <div class="absolute -top-8 -right-8 bg-green-100 rounded-full p-6 group-hover:scale-110 transition-transform duration-300">
+        <svg class="w-12 h-12 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      </div>
+      <h3 class="text-2xl font-bold mb-2 text-green-700 group-hover:text-green-800 transition-colors duration-200">Upload CSV</h3>
+      <p class="text-gray-500 mb-6">Import your CSV files to add or update survey records in bulk.</p>
+      <span class="inline-block px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold shadow transition-all duration-200 group-hover:scale-105">Go to CSV Upload</span>
+      <div class="absolute inset-0 bg-green-50 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-3xl pointer-events-none"></div>
+    </a>
+  </div>
+</div>
+<style>
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fadeIn 0.8s cubic-bezier(.4,0,.2,1) both; }
+.animate-fade-in-up { animation: fadeInUp 1s cubic-bezier(.4,0,.2,1) both; }
+.animate-slide-down { animation: slideDown 1s cubic-bezier(.4,0,.2,1) both; }
+.delay-100 { animation-delay: 0.15s; }
+</style>
+{% endblock %} 

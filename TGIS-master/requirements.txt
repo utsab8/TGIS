@@ -18,3 +18,4 @@ pandas
 simplekml
 geopandas
 python-magic
+django-filter

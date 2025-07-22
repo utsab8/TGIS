@@ -38,3 +38,12 @@ class UploadHistory(models.Model):
 
     def __str__(self):
         return f"{self.filename} uploaded by {self.user} at {self.upload_time} - {self.status}"
+
+class Boundary(models.Model):
+    survey_record = models.ForeignKey(SurveyRecord, on_delete=models.CASCADE, related_name='boundaries')
+    geojson = models.JSONField()  # Store polygon as GeoJSON
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Boundary for {self.survey_record.kitta_number}"

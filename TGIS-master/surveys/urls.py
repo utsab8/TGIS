@@ -10,7 +10,7 @@ from .views import (
     survey_list_view, survey_add_view, map_view, survey_edit_view, 
     survey_delete_view, download_generated_kml, 
     download_all_surveys_kml, dashboard_view, download_error_report, 
-    help_view, advanced_csv_upload
+    help_view, advanced_csv_upload, boundaries_geojson_api
 )
 from rest_framework.routers import DefaultRouter
 
@@ -53,6 +53,11 @@ urlpatterns += [
     # Dashboard API
     path('api/v1/dashboard/stats/', dashboard_stats_api, name='api_dashboard_stats'),
     path('api/v1/dashboard/coverage/', dashboard_coverage_api, name='api_dashboard_coverage'),
+]
+
+urlpatterns += [
+    path('api/v1/boundaries/', boundaries_geojson_api, name='api_boundaries_geojson'),
+    path('api/v1/boundaries/<int:pk>/', boundaries_geojson_api, name='api_boundaries_geojson_detail'),
 ]
 
 urlpatterns += [

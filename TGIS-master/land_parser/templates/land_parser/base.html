@@ -135,15 +135,13 @@
             <div class="flex items-center space-x-4">
                 <a href="/" class="text-2xl font-extrabold text-blue-600 navbar-anim">GeoSurveyPro</a>
                 <a href="/surveys/dashboard/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Dashboard</a>
-                <a href="/surveys/upload-csv/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Upload CSV</a>
-                <a href="/land-parser/" class="text-blue-600 hover:text-blue-700 font-semibold navbar-anim border-b-2 border-blue-600">Upload KML</a>
-                <a href="{% url 'land_parser:help' %}" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Help</a>
+                <a href="/upload/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Upload</a>
                 <a href="/surveys/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Survey List</a>
                 <a href="/surveys/map-view/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Map View</a>
             </div>
             <div class="flex items-center space-x-2">
                 {% if user.is_authenticated %}
-                    <span class="text-gray-600 mr-2">Hi, {{ user.username }}</span>
+                    <span class="text-gray-600 mr-2">Hi, {{ user.first_name|default:user.username }}</span>
                     <a href="/accounts/logout/" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow navbar-anim">Logout</a>
                 {% else %}
                     <a href="/accounts/login/" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded shadow navbar-anim">Login</a>
