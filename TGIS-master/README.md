@@ -153,3 +153,28 @@ For support and questions, please open an issue on the GitHub repository.
 - Django community for the excellent web framework
 - Open source geographic libraries contributors
 - All contributors to this project 
+
+## PDF Export with Map Snapshot
+
+The PDF export feature includes a map snapshot generated with Folium. Each selected survey record is shown as a marker with Kitta Number and Owner Name. The map is embedded in the PDF as an image.
+
+### Requirements
+- folium
+- selenium
+- pillow
+- ChromeDriver (for Selenium, must be installed and in your system PATH)
+
+### Setup
+1. Install dependencies:
+   ```bash
+   pip install folium selenium pillow
+   ```
+2. Download ChromeDriver from https://sites.google.com/chromium.org/driver/ and place it in your system PATH.
+   - The ChromeDriver version must match your installed version of Google Chrome.
+3. The PDF export will now generate a map image for your selected survey records.
+
+### Customization
+- The map shows all selected records as markers.
+- Each marker popup displays the Kitta Number and Owner Name.
+- The map is centered on your data.
+- For further customization (polygons, custom marker styles, etc.), edit the `generate_folium_map_image` function in `surveys/views.py`. 

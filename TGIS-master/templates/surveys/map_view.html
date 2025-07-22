@@ -23,14 +23,14 @@
     <div id="info-panel" style="display:none;"></div>
   </div>
   <p class="mt-6 text-center">
-    <a href="{% url 'kml_export_batch' %}" target="_blank" class="text-blue-600 hover:underline font-medium">Download All as KML (Google Earth Pro)</a>
+    <a href="{% url 'kml_export' %}" target="_blank" class="text-blue-600 hover:underline font-medium">Download All as KML (Google Earth Pro)</a>
   </p>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
   <script src="https://unpkg.com/leaflet-measure/dist/leaflet-measure.js"></script>
   <script>
-    var map = L.map('map').setView([27.7, 85.3], 8);
+    var map = L.map('map').setView([27.7, 85.3], 10);
     var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap contributors'
@@ -49,15 +49,12 @@
     };
     L.control.layers(baseMaps).addTo(map);
 
-    // --- Marker Cluster Group for CSV Points ---
+    // --- Marker Cluster Group for Survey Points ---
     var markers = L.markerClusterGroup();
-    var surveyPoints = [
-      {lat: 27.7, lon: 85.3, title: 'Plot 1', owner: 'Owner A', kitta: '123', id: 1},
-      {lat: 27.8, lon: 85.32, title: 'Plot 2', owner: 'Owner B', kitta: '124', id: 2}
-    ];
+    var surveyPoints = {{ survey_points_json|safe }};
     var pointLayerGroup = L.layerGroup();
     var customIcon = L.icon({
-      iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+      iconUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/images/marker-icon.png',
       iconSize: [25, 41],
       iconAnchor: [12, 41],
       popupAnchor: [1, -34],
@@ -65,9 +62,9 @@
     var pointMarkers = {};
     surveyPoints.forEach(function(point) {
       var marker = L.marker([point.lat, point.lon], {icon: customIcon});
-      marker.bindPopup('<b>' + point.title + '</b><br>Owner: ' + point.owner + '<br>Kitta: ' + point.kitta);
+      marker.bindPopup('<b>Kitta:</b> ' + point.kitta + '<br><b>Owner:</b> ' + point.owner + '<br><b>Land Type:</b> ' + point.land_type + '<br><b>Area:</b> ' + point.area_size);
       marker.on('click', function() {
-        showInfoPanel('<b>' + point.title + '</b><br>Owner: ' + point.owner + '<br>Kitta: ' + point.kitta + '<br>Lat: ' + point.lat + '<br>Lon: ' + point.lon);
+        showInfoPanel('<b>Kitta:</b> ' + point.kitta + '<br><b>Owner:</b> ' + point.owner + '<br><b>Land Type:</b> ' + point.land_type + '<br><b>Area:</b> ' + point.area_size + '<br><b>Lat:</b> ' + point.lat + '<br><b>Lon:</b> ' + point.lon);
       });
       marker._surveyId = point.id;
       pointMarkers[point.id] = marker;
@@ -75,9 +72,23 @@
       pointLayerGroup.addLayer(marker);
     });
     map.addLayer(markers);
+    if (surveyPoints.length > 0) {
+      var bounds = L.latLngBounds(surveyPoints.map(function(p) { return [p.lat, p.lon]; }));
+      map.fitBounds(bounds, {padding: [30, 30]});
+    }
 
-    // --- KML Polygon Rendering ---
+    // --- KML Polygon Rendering (optional, can be extended) ---
     var polygonLayerGroup = L.layerGroup();
+    var boundaryFeatures = {{ boundary_data_json|safe }};
+    boundaryFeatures.forEach(function(feature) {
+      var layer = L.geoJSON(feature, {
+        style: {color: 'red', fillOpacity: 0.25, weight: 3},
+        onEachFeature: function (feature, layer) {
+          layer.bindPopup('KML Polygon<br>ID: ' + (feature.properties.id || ''));
+        }
+      });
+      polygonLayerGroup.addLayer(layer);
+    });
     map.addLayer(polygonLayerGroup);
 
     function highlightPolygonsByKitta(kitta) {
@@ -134,8 +145,7 @@
       var div = L.DomUtil.create('div', 'info legend');
       div.id = 'legend';
       div.innerHTML = '<b>Legend</b><br>' +
-        '<i style="background: #3388ff; width: 12px; height: 12px; display: inline-block;"></i> Survey Point<br>' +
-        '<i style="background: red; width: 12px; height: 12px; display: inline-block;"></i> KML Polygon';
+        '<i style="background: #3388ff; width: 12px; height: 12px; display: inline-block;"></i> Survey Point';
       return div;
     };
     legend.addTo(map);

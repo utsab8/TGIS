@@ -43,9 +43,23 @@ from .serializers import SurveyRecordSerializer, FileAttachmentSerializer, Bound
 import tempfile
 from decimal import Decimal
 import json
+import urllib.parse
+try:
+    from shapely import wkt as shapely_wkt
+    from shapely.geometry import mapping as shapely_mapping
+except ImportError:
+    shapely_wkt = None
+    shapely_mapping = None
 from datetime import datetime
 import uuid
 from django_filters.rest_framework import DjangoFilterBackend
+import requests
+import folium
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from PIL import Image
+import time
+from staticmap import StaticMap, CircleMarker
 
 @register.filter
 def get_item(dictionary, key):
@@ -111,13 +125,39 @@ def csv_upload_view(request):
             }
 
             try:
-                df = pd.read_csv(temp_file_path)
+                df = robust_read_csv(temp_file_path)
 
                 # --- ACTION: Download as KML ---
                 if action == 'download_kml':
                     kml = simplekml.Kml()
+                    def parse_wkt_polygon(wkt):
+                        # Expects WKT like: POLYGON((lng lat, lng lat, ...))
+                        if not isinstance(wkt, str) or not wkt.upper().startswith('POLYGON'):
+                            return None
+                        coords_str = wkt[wkt.find("((")+2:wkt.find("))")]
+                        coords = []
+                        for pair in coords_str.split(','):
+                            parts = pair.strip().split()
+                            if len(parts) == 2:
+                                lng, lat = map(float, parts)
+                                coords.append((lng, lat))
+                        return coords if coords else None
+
                     for i, row in df.iterrows():
                         try:
+                            geometry_col = field_map.get('geometry')
+                            geometry_val = row.get(geometry_col) if geometry_col else None
+                            if geometry_val:
+                                coords = parse_wkt_polygon(geometry_val)
+                                if coords:
+                                    pol = kml.newpolygon(name=str(row.get(field_map['kitta_number'], '')),
+                                                         outerboundaryis=coords)
+                                    desc = []
+                                    for col, val in row.items():
+                                        desc.append(f"<b>{col}:</b> {val}")
+                                    pol.description = "<br>".join(desc)
+                                    continue  # Skip to next row after polygon
+                            # Otherwise, fallback to point
                             lat = float(row.get(field_map['lat']))
                             lon = float(row.get(field_map['lon']))
                             name = str(row.get(field_map['kitta_number'], ''))
@@ -127,8 +167,7 @@ def csv_upload_view(request):
                                 desc.append(f"<b>{col}:</b> {val}")
                             pnt.description = "<br>".join(desc)
                         except (ValueError, TypeError):
-                            continue # Skip rows with invalid coordinates
-                    
+                            continue # Skip rows with invalid geometry or coordinates
                     response = HttpResponse(kml.kml(), content_type='application/vnd.google-earth.kml+xml')
                     response['Content-Disposition'] = f'attachment; filename="kml_export_{csv_filename}.kml"'
                     return response
@@ -188,28 +227,29 @@ def csv_upload_view(request):
             request.session['csv_filename'] = csv_file.name
             
             try:
-                df = pd.read_csv(temp_file_path)
-                # ... (rest of the initial parsing and rendering logic is mostly the same)
-                field_map = {}
-                candidates = {'kitta_number': ['kitta_number', 'kitta', 'plot number'], 'lat': ['lat', 'latitude'], 'lon': ['lon', 'longitude'], 'owner_name': ['owner_name', 'owner'], 'geometry': ['wkt', 'geom', 'geometry']}
-                for key, options in candidates.items():
-                    for col in df.columns:
-                        if col.strip().lower() in options:
-                            field_map[key] = col
-                            break
-                
-                request.session['csv_preview'] = df.head(10).to_dict('records')
-                request.session['csv_columns'] = list(df.columns)
-                request.session['csv_field_map'] = field_map
-                
-                field_labels = {'kitta_number': 'Kitta Number', 'lat': 'Latitude', 'lon': 'Longitude', 'owner_name': 'Owner Name', 'geometry': 'Geometry (WKT/GeoJSON)'}
-                
-                return render(request, 'surveys/csv_field_mapping.html', {'columns': list(df.columns), 'field_map': field_map, 'preview_rows': request.session['csv_preview'], 'form': form, 'field_labels': field_labels})
-
+                # Initial parsing and rendering logic
+                df = robust_read_csv(temp_file_path)
             except Exception as e:
                 record_failure(csv_file.name, f"Failed to parse CSV: {e}")
                 os.remove(temp_file_path) # Clean up failed upload
                 return redirect('csv_upload')
+
+            field_map = {}
+            candidates = {'kitta_number': ['kitta_number', 'kitta', 'plot number'], 'lat': ['lat', 'latitude'], 'lon': ['lon', 'longitude'], 'owner_name': ['owner_name', 'owner'], 'geometry': ['wkt', 'geom', 'geometry']}
+            for key, options in candidates.items():
+                for col in df.columns:
+                    if col.strip().lower() in options:
+                        field_map[key] = col
+                        break
+            
+            request.session['csv_preview'] = df.head(10).to_dict('records')
+            request.session['csv_columns'] = list(df.columns)
+            request.session['csv_field_map'] = field_map
+            
+            field_labels = {'kitta_number': 'Kitta Number', 'lat': 'Latitude', 'lon': 'Longitude', 'owner_name': 'Owner Name', 'geometry': 'Geometry (WKT/GeoJSON)'}
+            
+            return render(request, 'surveys/csv_field_mapping.html', {'columns': list(df.columns), 'field_map': field_map, 'preview_rows': request.session['csv_preview'], 'form': form, 'field_labels': field_labels})
+
     else:
         form = CSVUploadForm()
     
@@ -240,14 +280,46 @@ def download_all_surveys_kml(request):
     response['Content-Disposition'] = 'attachment; filename="all_surveys.kml"'
     return response
 
+def get_filtered_records(request):
+    records = SurveyRecord.objects.all().order_by('-created_at')
+    kitta_number = request.GET.get('kitta_number', '').strip()
+    owner_name = request.GET.get('owner_name', '').strip()
+    area_min = request.GET.get('area_min', '').strip()
+    area_max = request.GET.get('area_max', '').strip()
+    search = request.GET.get('search', '').strip()
+    selected_ids = request.GET.get('selected_ids', '').strip()
+    if selected_ids:
+        id_list = [int(pk) for pk in selected_ids.split(',') if pk.isdigit()]
+        records = records.filter(pk__in=id_list)
+        return records
+    if kitta_number:
+        records = records.filter(kitta_number__icontains=kitta_number)
+    if owner_name:
+        records = records.filter(owner_name__icontains=owner_name)
+    if area_min:
+        try:
+            records = records.filter(area_size__gte=float(area_min))
+        except ValueError:
+            pass
+    if area_max:
+        try:
+            records = records.filter(area_size__lte=float(area_max))
+        except ValueError:
+            pass
+    if search:
+        records = records.filter(
+            Q(kitta_number__icontains=search) |
+            Q(owner_name__icontains=search) |
+            Q(land_type__icontains=search)
+        )
+    return records
+
 def csv_export_view(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="survey_records.csv"'
-    
     writer = csv.writer(response)
     writer.writerow(['Kitta Number', 'Owner Name', 'Latitude', 'Longitude', 'Land Type', 'Area Size (sq m)', 'Data Source', 'Created At'])
-    
-    records = SurveyRecord.objects.all()
+    records = get_filtered_records(request)
     for record in records:
         writer.writerow([
             record.kitta_number or '',
@@ -259,7 +331,140 @@ def csv_export_view(request):
             record.data_source or '',
             record.created_at or ''
         ])
-    
+    return response
+
+def excel_export_view(request):
+    import pandas as pd
+    records = get_filtered_records(request)
+    data = [
+        {
+            'Kitta Number': r.kitta_number,
+            'Owner Name': r.owner_name,
+            'Latitude': r.lat,
+            'Longitude': r.lon,
+            'Land Type': r.land_type,
+            'Area Size (sq m)': r.area_size,
+            'Data Source': r.data_source,
+            'Created At': r.created_at,
+        }
+        for r in records
+    ]
+    df = pd.DataFrame(data)
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="survey_records.xlsx"'
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False)
+    return response
+
+def kml_export_view(request):
+    import simplekml
+    records = get_filtered_records(request)
+    kml = simplekml.Kml()
+    for record in records:
+        if record.lat and record.lon:
+            pnt = kml.newpoint(name=record.kitta_number or 'Unknown')
+            pnt.coords = [(record.lon, record.lat)]
+            pnt.description = f"Owner: {record.owner_name or 'Unknown'}<br>Land Type: {record.land_type or 'Unknown'}<br>Area: {record.area_size or 0} sq m"
+    response = HttpResponse(kml.kml(), content_type='application/vnd.google-earth.kml+xml')
+    response['Content-Disposition'] = 'attachment; filename="survey_records.kml"'
+    return response
+
+def generate_folium_map_image(records, width=600, height=400):
+    # Center on the first record or a default location
+    center = [float(records[0].lat), float(records[0].lon)] if records and records[0].lat and records[0].lon else [27.6712, 85.3240]
+    m = folium.Map(location=center, zoom_start=16, width=width, height=height)
+    for r in records:
+        if r.lat and r.lon:
+            popup = f'Kitta: {r.kitta_number}<br>Owner: {r.owner_name}'
+            folium.Marker([float(r.lat), float(r.lon)], popup=popup).add_to(m)
+    # Save to HTML
+    tmp_html = tempfile.NamedTemporaryFile(delete=False, suffix='.html')
+    m.save(tmp_html.name)
+    tmp_html.close()  # Ensure file is closed before Selenium uses it
+    # Use Selenium to screenshot the map
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument(f'--window-size={width},{height}')
+    driver = webdriver.Chrome(options=chrome_options)
+    driver.get('file://' + tmp_html.name)
+    time.sleep(2)  # Wait for map to render
+    tmp_png = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+    driver.save_screenshot(tmp_png.name)
+    driver.quit()
+    # Wait for Chrome to fully release the file lock and process the image
+    for _ in range(20):
+        try:
+            img = Image.open(tmp_png.name)
+            buffered = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+            img.save(buffered.name, format='PNG')
+            img.close()
+            with open(buffered.name, 'rb') as f:
+                encoded = base64.b64encode(f.read()).decode('utf-8')
+            os.unlink(buffered.name)
+            break
+        except PermissionError:
+            time.sleep(0.2)
+    else:
+        raise PermissionError(f"Could not process image file: {tmp_png.name}")
+    # Clean up temp files
+    os.unlink(tmp_html.name)
+    os.unlink(tmp_png.name)
+    return f'data:image/png;base64,{encoded}'
+
+def generate_static_map_image(records, width=600, height=400):
+    m = StaticMap(width, height)
+    for r in records:
+        if r.lat and r.lon:
+            marker = CircleMarker((float(r.lon), float(r.lat)), 'red', 12)
+            m.add_marker(marker)
+    image = m.render()
+    tmp_png = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+    image.save(tmp_png.name, format='PNG')
+    tmp_png.close()  # Ensure file is closed before reading/deleting
+    with open(tmp_png.name, 'rb') as f:
+        encoded = base64.b64encode(f.read()).decode('utf-8')
+    # Robustly delete the file (retry if needed)
+    import time
+    for _ in range(10):
+        try:
+            os.unlink(tmp_png.name)
+            break
+        except PermissionError:
+            time.sleep(0.1)
+    return f'data:image/png;base64,{encoded}'
+
+def pdf_export_view(request):
+    from django.template.loader import render_to_string
+    from xhtml2pdf import pisa
+    records = get_filtered_records(request)
+    map_img_data = generate_static_map_image(records)
+    # Build absolute path to logo
+    logo_path = os.path.join(settings.BASE_DIR, 'static', 'logo.png')
+    print('Looking for logo at:', logo_path)
+    print('File exists?', os.path.exists(logo_path))
+    print('Files in static dir:', os.listdir(os.path.join(settings.BASE_DIR, 'static')))
+    with open(logo_path, 'rb') as f:
+        logo_base64 = base64.b64encode(f.read()).decode('utf-8')
+    logo_data = f'data:image/png;base64,{logo_base64}'
+    total_area = sum(float(r.area_size) for r in records if r.area_size not in (None, '', 'None'))
+    unique_owners = len(set(r.owner_name for r in records if r.owner_name))
+    areas = [float(r.area_size) for r in records if r.area_size not in (None, '', 'None')]
+    area_min = min(areas) if areas else 'N/A'
+    area_max = max(areas) if areas else 'N/A'
+    html = render_to_string('surveys/pdf_report.html', {
+        'records': records,
+        'map_img_data': map_img_data,
+        'total_area': total_area,
+        'logo_data': logo_data,
+        'unique_owners': unique_owners,
+        'area_min': area_min,
+        'area_max': area_max,
+    })
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="survey_records.pdf"'
+    pisa.CreatePDF(html, dest=response)
     return response
 
 class AttachmentUploadForm(forms.Form):
@@ -461,7 +666,44 @@ def boundaries_geojson_api(request, pk=None):
 
 def survey_list_view(request):
     records = SurveyRecord.objects.all().order_by('-created_at')
-    return render(request, 'surveys/survey_list.html', {'records': records})
+    # Filtering
+    kitta_number = request.GET.get('kitta_number', '').strip()
+    owner_name = request.GET.get('owner_name', '').strip()
+    area_min = request.GET.get('area_min', '').strip()
+    area_max = request.GET.get('area_max', '').strip()
+    search = request.GET.get('search', '').strip()
+
+    if kitta_number:
+        records = records.filter(kitta_number__icontains=kitta_number)
+    if owner_name:
+        records = records.filter(owner_name__icontains=owner_name)
+    if area_min:
+        try:
+            records = records.filter(area_size__gte=float(area_min))
+        except ValueError:
+            pass
+    if area_max:
+        try:
+            records = records.filter(area_size__lte=float(area_max))
+        except ValueError:
+            pass
+    if search:
+        records = records.filter(
+            Q(kitta_number__icontains=search) |
+            Q(owner_name__icontains=search) |
+            Q(land_type__icontains=search)
+        )
+    context = {
+        'records': records,
+        'filters': {
+            'kitta_number': kitta_number,
+            'owner_name': owner_name,
+            'area_min': area_min,
+            'area_max': area_max,
+            'search': search,
+        }
+    }
+    return render(request, 'surveys/survey_list.html', context)
 
 class SurveyAddForm(forms.ModelForm):
     class Meta:
@@ -499,7 +741,40 @@ def survey_delete_view(request, pk):
 
 def map_view(request):
     records = SurveyRecord.objects.filter(lat__isnull=False, lon__isnull=False)
-    return render(request, 'surveys/map.html', {'records': records})
+    # Prepare survey points for JS
+    survey_points = [
+        {
+            'lat': float(r.lat),
+            'lon': float(r.lon),
+            'title': r.kitta_number or '',
+            'owner': r.owner_name or '',
+            'kitta': r.kitta_number or '',
+            'id': r.pk,
+            'land_type': r.land_type or '',
+            'area_size': r.area_size or '',
+        }
+        for r in records
+    ]
+    # Prepare boundary polygons for JS
+    from .models import Boundary
+    boundaries = Boundary.objects.all()
+    boundary_features = []
+    for b in boundaries:
+        feature = {
+            'type': 'Feature',
+            'geometry': b.geojson,
+            'properties': {
+                'id': b.id,
+                'survey_record': b.survey_record_id,
+                'created_at': b.created_at.isoformat(),
+            }
+        }
+        boundary_features.append(feature)
+    import json
+    return render(request, 'surveys/map_view.html', {
+        'survey_points_json': json.dumps(survey_points),
+        'boundary_data_json': json.dumps(boundary_features),
+    })
 
 def download_generated_kml(request):
     kml_content = request.session.get('generated_kml')
@@ -617,3 +892,82 @@ def none_to_null(val):
     if val is None:
         return None
     return val
+
+def robust_read_csv(path):
+    import pandas as pd
+    try:
+        try:
+            return pd.read_csv(path, encoding='utf-8')
+        except UnicodeDecodeError:
+            return pd.read_csv(path, encoding='latin1')
+        except Exception:
+            try:
+                return pd.read_csv(path, encoding='utf-8', sep='\t')
+            except UnicodeDecodeError:
+                return pd.read_csv(path, encoding='latin1', sep='\t')
+            except Exception:
+                try:
+                    return pd.read_csv(path, encoding='utf-8', sep=';')
+                except UnicodeDecodeError:
+                    return pd.read_csv(path, encoding='latin1', sep=';')
+                except Exception:
+                    try:
+                        return pd.read_csv(path, encoding='utf-8', on_bad_lines='skip')
+                    except UnicodeDecodeError:
+                        return pd.read_csv(path, encoding='latin1', on_bad_lines='skip')
+    except Exception as e:
+        raise e
+
+def get_mapbox_static_url(records, width=600, height=400):
+    access_token = 'YOUR_MAPBOX_ACCESS_TOKEN'  # <-- Replace with your token!
+    features = []
+    for r in records:
+        # Add point marker
+        if r.lat and r.lon:
+            features.append({
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [float(r.lon), float(r.lat)]},
+                "properties": {}
+            })
+        # Add polygon if available (auto-detect WKT or GeoJSON)
+        geometry = getattr(r, 'geometry', None)
+        if geometry:
+            try:
+                # Try GeoJSON first
+                geom = json.loads(geometry)
+                features.append({
+                    "type": "Feature",
+                    "geometry": geom,
+                    "properties": {}
+                })
+            except Exception:
+                # Try WKT if shapely is available
+                if shapely_wkt and shapely_mapping:
+                    try:
+                        shape = shapely_wkt.loads(geometry)
+                        geojson_geom = shapely_mapping(shape)
+                        features.append({
+                            "type": "Feature",
+                            "geometry": geojson_geom,
+                            "properties": {}
+                        })
+                    except Exception:
+                        pass
+    geojson = {"type": "FeatureCollection", "features": features}
+    geojson_str = urllib.parse.quote(json.dumps(geojson))
+    overlay = f'geojson({geojson_str})'
+    center = f"{records[0].lon},{records[0].lat}" if records and records[0].lat and records[0].lon else "85.3240,27.6712"
+    url = (
+        f"https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/"
+        f"{overlay}/{center},12/{width}x{height}@2x"
+        f"?access_token={access_token}"
+    )
+    return url
+
+def get_mapbox_static_image_base64(records, width=600, height=400):
+    url = get_mapbox_static_url(records, width, height)
+    response = requests.get(url)
+    if response.status_code == 200:
+        encoded = base64.b64encode(response.content).decode('utf-8')
+        return f"data:image/png;base64,{encoded}"
+    return None

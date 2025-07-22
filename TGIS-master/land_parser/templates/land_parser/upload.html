@@ -97,6 +97,13 @@
         </form>
     </div>
 
+    <!-- KML Map Preview Section -->
+    <div class="w-full max-w-2xl bg-white/80 rounded-xl shadow-xl mt-8 p-6 animate-fade-in-up">
+        <h3 class="text-xl font-semibold mb-4 text-gray-700">KML Map Preview</h3>
+        <div id="kml-map" style="height: 400px; width: 100%; border-radius: 12px; border: 1px solid #e5e7eb;"></div>
+        <div id="kml-map-message" class="text-gray-500 mt-2">Select a KML file to preview its features on the map.</div>
+    </div>
+
     <!-- KML Help Button -->
     <div class="w-full max-w-2xl flex justify-end mt-2 animate-fade-in-up">
         <a href="{% url 'land_parser:help' %}" target="_blank" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors">
@@ -135,6 +142,8 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/togeojson@0.16.0/dist/togeojson.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const uploadArea = document.getElementById('upload-area');
@@ -235,6 +244,72 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<svg class="w-6 h-6 animate-spin mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>Processing...';
+    });
+
+    // KML Map Preview logic
+    let kmlMap, kmlLayer;
+    function initKmlMap() {
+        if (kmlMap) return;
+        kmlMap = L.map('kml-map').setView([27.7, 85.3], 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(kmlMap);
+        kmlLayer = L.geoJSON(null, { style: { color: '#3388ff', weight: 2, fillOpacity: 0.2 } }).addTo(kmlMap);
+    }
+    function showKmlOnMap(kmlText) {
+        try {
+            const parser = new DOMParser();
+            const kmlDom = parser.parseFromString(kmlText, 'text/xml');
+            const geojson = toGeoJSON.kml(kmlDom);
+            kmlLayer.clearLayers();
+            if (geojson.features && geojson.features.length > 0) {
+                let errorCount = 0;
+                geojson.features.forEach(function(feature) {
+                    // Check for geometry
+                    if (!feature.geometry) {
+                        // Add a red marker at [0,0] for missing geometry
+                        L.circleMarker([0,0], { color: 'red', radius: 8, fillOpacity: 0.7 })
+                            .addTo(kmlLayer)
+                            .bindPopup('<b>Error:</b> Missing geometry');
+                        errorCount++;
+                        return;
+                    }
+                    // Style: red for errors, blue for valid
+                    let style = { color: '#3388ff', weight: 2, fillOpacity: 0.2 };
+                    // Create layer
+                    let layer = L.geoJSON(feature, { style: style });
+                    // Attribute popup
+                    let props = feature.properties || {};
+                    let popupHtml = '<div style="min-width:180px">';
+                    for (const [key, value] of Object.entries(props)) {
+                        popupHtml += `<b>${key}:</b> ${value}<br>`;
+                    }
+                    popupHtml += '</div>';
+                    layer.bindPopup(popupHtml);
+                    layer.addTo(kmlLayer);
+                });
+                kmlMap.fitBounds(kmlLayer.getBounds(), { padding: [30, 30], maxZoom: 17 });
+                let msg = `Showing ${geojson.features.length} feature(s).`;
+                if (errorCount > 0) msg += ` ${errorCount} feature(s) had errors.`;
+                document.getElementById('kml-map-message').textContent = msg;
+            } else {
+                document.getElementById('kml-map-message').textContent = 'No features found in the selected KML file.';
+            }
+        } catch (e) {
+            document.getElementById('kml-map-message').textContent = 'Error parsing KML: ' + e.message;
+        }
+    }
+    // Hook into file input
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            const file = this.files[0];
+            if (file.name.toLowerCase().endsWith('.kml')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    initKmlMap();
+                    showKmlOnMap(e.target.result);
+                };
+                reader.readAsText(file);
+            }
+        }
     });
 });
 </script>

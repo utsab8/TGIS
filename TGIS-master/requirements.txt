@@ -19,3 +19,7 @@ simplekml
 geopandas
 python-magic
 django-filter
+folium
+selenium
+pillow
+staticmap

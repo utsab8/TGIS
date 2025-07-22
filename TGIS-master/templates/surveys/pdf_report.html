@@ -1,33 +1,78 @@
-{% extends 'base.html' %}
-{% block content %}
-<div class="max-w-2xl mx-auto mt-10 bg-white rounded-xl shadow-lg p-8 animate-fade-in">
-  <h2 class="text-2xl font-bold mb-6 text-gray-800">Survey Report: {{ record.title }}</h2>
-  <div class="mb-6">
-    <div class="mb-2"><span class="font-semibold text-gray-700">Owner:</span> {{ record.owner_name }}</div>
-    <div class="mb-2"><span class="font-semibold text-gray-700">Kitta Number:</span> {{ record.kitta_number }}</div>
-    <div class="mb-2"><span class="font-semibold text-gray-700">Latitude:</span> {{ record.lat }}</div>
-    <div class="mb-2"><span class="font-semibold text-gray-700">Longitude:</span> {{ record.lon }}</div>
-  </div>
-  <div class="mb-6">
-    <h4 class="font-semibold text-lg text-blue-700 mb-2">KML Boundaries</h4>
-    <ul class="list-disc pl-6">
-      {% for b in boundaries %}
-        <li><span class="font-semibold">{{ b.name }}</span> <span class="text-gray-500">({{ b.description }})</span></li>
-      {% empty %}
-        <li class="text-gray-400">No boundaries linked.</li>
-      {% endfor %}
-    </ul>
-  </div>
-  <div class="mb-6">
-    <h4 class="font-semibold text-lg text-blue-700 mb-2">Map Snapshot</h4>
-    <img src="{{ map_img|default:'' }}" class="w-full max-w-md border border-gray-200 rounded-lg shadow" alt="Map snapshot" />
-  </div>
-  <div class="mb-6 flex items-center gap-4">
-    <div>
-      <h4 class="font-semibold text-lg text-blue-700 mb-2">Google Earth Pro</h4>
-      <p>Scan to view in Google Earth Pro or <a href="{{ kml_url }}" class="text-blue-600 hover:underline">download KML</a>.</p>
-    </div>
-    <img src="{{ qr_code }}" class="w-20 h-20 border rounded shadow" alt="QR code" />
+<html>
+<head>
+  <title>Survey Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .header { display: flex; align-items: center; margin-bottom: 1em; }
+    .logo { height: 60px; margin-right: 20px; }
+    .title-block { flex: 1; }
+    .report-title { font-size: 2em; font-weight: bold; margin-bottom: 0.2em; }
+    .meta { font-size: 1em; color: #444; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.95em; margin-top: 1em; }
+    th, td { border: 1px solid #222; padding: 6px; text-align: left; }
+    th { background: #e0e7ef; }
+    tr:nth-child(even) { background: #f6f8fa; }
+    tr:nth-child(odd) { background: #fff; }
+    .summary { margin-top: 2em; font-size: 1.1em; }
+    .footer { margin-top: 3em; text-align: center; color: #888; font-size: 1em; }
+    .map-block { margin-top: 2em; text-align: center; }
+    .map-block img { border: 1px solid #ccc; }
+    .page-break { page-break-after: always; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <img src="{{ logo_data }}" class="logo" alt="Logo"/>
+  <div class="title-block">
+    <div class="report-title">Survey Report</div>
+    <div class="meta">Project: TGIS Project<br/>Date: {{ now|date:"Y-m-d" }}</div>
   </div>
 </div>
-{% endblock %}
+<table>
+  <thead>
+    <tr>
+      <th>Kitta Number</th>
+      <th>Owner Name</th>
+      <th>Latitude</th>
+      <th>Longitude</th>
+      <th>Land Type</th>
+      <th>Area Size</th>
+      <th>Data Source</th>
+      <th>Created At</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for record in records %}
+    <tr>
+      <td>{{ record.kitta_number }}</td>
+      <td>{{ record.owner_name }}</td>
+      <td>{{ record.lat }}</td>
+      <td>{{ record.lon }}</td>
+      <td>{{ record.land_type }}</td>
+      <td>{{ record.area_size }}</td>
+      <td>{{ record.data_source }}</td>
+      <td>{{ record.created_at }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="map-block">
+  {% if map_img_data %}
+    <img src="{{ map_img_data }}" width="600" height="400" alt="Map"/>
+    <br/>
+    <span style="color: #888; font-size: 0.9em;">(Map snapshot generated automatically)</span>
+  {% endif %}
+</div>
+<div class="summary">
+  <b>Summary:</b><br/>
+  This table lists {{ records|length }} survey record{{ records|length|pluralize }} with details including Kitta Number, Owner Name, coordinates, land type, area, data source, and creation date.<br/>
+  There are {{ records|length }} total records, belonging to {{ unique_owners }} unique owners.
+  The area size ranges from {{ area_min }} to {{ area_max }} sq.m.<br/>
+  The map below visualizes the selected records.
+</div>
+<div class="footer">
+  Software made by Utsab.<br/>
+  Page <pdf:pagenumber /> of <pdf:pagecount />
+</div>
+</body>
+</html>

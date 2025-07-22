@@ -10,7 +10,8 @@ from .views import (
     survey_list_view, survey_add_view, map_view, survey_edit_view, 
     survey_delete_view, download_generated_kml, 
     download_all_surveys_kml, dashboard_view, download_error_report, 
-    help_view, advanced_csv_upload, boundaries_geojson_api
+    help_view, advanced_csv_upload, boundaries_geojson_api, 
+    excel_export_view, kml_export_view, pdf_export_view
 )
 from rest_framework.routers import DefaultRouter
 
@@ -90,4 +91,10 @@ urlpatterns += [
 urlpatterns += [
     path('advanced-csv-upload/', advanced_csv_upload, name='advanced_csv_upload'),
     path('dashboard/', dashboard_view, name='dashboard'),
+]
+
+urlpatterns += [
+    path('export-excel/', excel_export_view, name='excel_export'),
+    path('export-kml/', kml_export_view, name='kml_export'),
+    path('export-pdf/', pdf_export_view, name='pdf_export'),
 ]
