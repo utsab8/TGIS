@@ -1,12 +1,19 @@
 {% extends 'base.html' %}
+{% load static %}
+{% load widget_tweaks %}
 {% block content %}
-<div class="min-h-[80vh] flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-100 animate-fade-in">
-  <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 mx-2">
+<div class="min-h-[80vh] flex items-center justify-center relative overflow-hidden">
+  <canvas id="confettiCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-10" style="display:none;"></canvas>
+  <div class="absolute inset-0 w-full h-full animate-gradient-bg z-0"></div>
+  <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 mx-2 animate-fade-in-up relative z-20">
+    <div class="flex justify-center mb-6">
+      <img src="{% static 'logo.png' %}" alt="GeoSurveyPro Logo" class="w-24 h-24 rounded-full shadow-lg border-4 border-green-200 transition-transform duration-700 hover:scale-110 animate-bounce-slow bg-white object-cover" style="object-fit:cover;"/>
+    </div>
     <h2 class="text-3xl font-extrabold text-center text-green-700 mb-8 tracking-tight">Create Your Account</h2>
-    <form method="post" class="space-y-6">
+    <form method="post" class="space-y-6" aria-label="Registration form" id="registerForm">
       {% csrf_token %}
       {% if form.errors %}
-        <div class="bg-red-100 text-red-700 px-4 py-2 rounded mb-4 animate-fade-in">
+        <div class="bg-red-100 text-red-700 px-4 py-2 rounded mb-4 animate-fade-in" role="alert">
           {% for field in form %}
             {% for error in field.errors %}
               <div>{{ error }}</div>
@@ -17,31 +24,215 @@
           {% endfor %}
         </div>
       {% endif %}
-      <div class="space-y-4">
-        <div>
-          {{ form.full_name.label_tag }}
-          {{ form.full_name }}
+      <div class="space-y-6">
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-400 pointer-events-none">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </span>
+          {{ form.full_name|add_class:"peer block w-full pl-10 pr-10 pt-6 pb-2 text-gray-900 bg-green-50 border-2 border-green-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-gradient-green shadow-sm text-base font-medium transition-all duration-300"|attr:"id:id_full_name"|attr:"placeholder: "|attr:"aria-label:Full Name" }}
+          <label for="id_full_name" class="absolute left-10 top-2 text-gray-500 text-base font-semibold pointer-events-none transition-all duration-200 peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-green-600 peer-not-empty:-translate-y-3 peer-not-empty:scale-90 peer-not-empty:text-green-600">Full Name</label>
+          <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500 opacity-0 transition-opacity duration-200" id="check_full_name">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </span>
         </div>
-        <div>
-          {{ form.phone.label_tag }}
-          {{ form.phone }}
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-400 pointer-events-none">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10a4 4 0 018 0v1a4 4 0 01-8 0v-1zm13 4v-1a4 4 0 00-8 0v1a4 4 0 008 0z"/></svg>
+          </span>
+          {{ form.phone|add_class:"peer block w-full pl-10 pr-4 pt-6 pb-2 text-gray-900 bg-green-50 border-2 border-green-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 shadow-sm text-base font-medium transition-all duration-300"|attr:"id:id_phone"|attr:"placeholder: "|attr:"aria-label:Phone Number" }}
+          <label for="id_phone" class="absolute left-10 top-2 text-gray-500 text-base font-semibold pointer-events-none transition-all duration-200 peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-green-600 peer-not-empty:-translate-y-3 peer-not-empty:scale-90 peer-not-empty:text-green-600">Phone</label>
         </div>
-        <div>
-          {{ form.email.label_tag }}
-          {{ form.email }}
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-400 pointer-events-none">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 12a4 4 0 01-8 0 4 4 0 018 0zm6 8v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/></svg>
+          </span>
+          {{ form.email|add_class:"peer block w-full pl-10 pr-4 pt-6 pb-2 text-gray-900 bg-green-50 border-2 border-green-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 shadow-sm text-base font-medium transition-all duration-300"|attr:"id:id_email"|attr:"autocomplete:email"|attr:"placeholder: "|attr:"aria-label:Email Address" }}
+          <label for="id_email" class="absolute left-10 top-2 text-gray-500 text-base font-semibold pointer-events-none transition-all duration-200 peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-green-600 peer-not-empty:-translate-y-3 peer-not-empty:scale-90 peer-not-empty:text-green-600">Email</label>
+          <div id="emailFeedback" class="mt-1 text-xs text-red-500 hidden"></div>
         </div>
-        <div>
-          {{ form.password1.label_tag }}
-          {{ form.password1 }}
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-400 pointer-events-none">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 11c1.104 0 2-.896 2-2s-.896-2-2-2-2 .896-2 2 .896 2 2 2zm0 2c-2.21 0-4 1.79-4 4v1h8v-1c0-2.21-1.79-4-4-4z"/></svg>
+          </span>
+          {{ form.password1|add_class:"peer block w-full pl-10 pr-4 pt-6 pb-2 text-gray-900 bg-green-50 border-2 border-green-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 shadow-sm text-base font-medium transition-all duration-300"|attr:"id:id_password1"|attr:"autocomplete:new-password"|attr:"placeholder: "|attr:"aria-label:Password" }}
+          <label for="id_password1" class="absolute left-10 top-2 text-gray-500 text-base font-semibold pointer-events-none transition-all duration-200 peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-green-600 peer-not-empty:-translate-y-3 peer-not-empty:scale-90 peer-not-empty:text-green-600">Password</label>
+          <button type="button" id="togglePassword1" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-400 hover:text-green-600 focus:outline-none" aria-label="Show password">
+            <svg id="eyeIcon1" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+          </button>
+          <div id="password1Feedback" class="mt-1 text-xs text-red-500 hidden"></div>
         </div>
-        <div>
-          {{ form.password2.label_tag }}
-          {{ form.password2 }}
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-400 pointer-events-none">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 11c1.104 0 2-.896 2-2s-.896-2-2-2-2 .896-2 2 .896 2 2 2zm0 2c-2.21 0-4 1.79-4 4v1h8v-1c0-2.21-1.79-4-4-4z"/></svg>
+          </span>
+          {{ form.password2|add_class:"peer block w-full pl-10 pr-4 pt-6 pb-2 text-gray-900 bg-green-50 border-2 border-green-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 shadow-sm text-base font-medium transition-all duration-300"|attr:"id:id_password2"|attr:"autocomplete:new-password"|attr:"placeholder: "|attr:"aria-label:Confirm Password" }}
+          <label for="id_password2" class="absolute left-10 top-2 text-gray-500 text-base font-semibold pointer-events-none transition-all duration-200 peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-green-600 peer-not-empty:-translate-y-3 peer-not-empty:scale-90 peer-not-empty:text-green-600">Confirm Password</label>
+          <button type="button" id="togglePassword2" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-400 hover:text-green-600 focus:outline-none" aria-label="Show password">
+            <svg id="eyeIcon2" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+          </button>
+          <div id="password2Feedback" class="mt-1 text-xs text-red-500 hidden"></div>
         </div>
       </div>
-      <button type="submit" class="w-full py-2 px-4 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700 transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-400">Register</button>
+      <button type="submit" class="w-full py-2 px-4 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700 transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-400" aria-label="Register">Register</button>
     </form>
     <p class="mt-6 text-center text-gray-600">Already have an account? <a href="{% url 'login' %}" class="text-green-600 hover:underline font-semibold transition">Login here</a>.</p>
   </div>
 </div>
+{% endblock %}
+{% block extra_css %}
+<style>
+  .animate-gradient-bg {
+    background: linear-gradient(270deg, #f0fdf4, #a7f3d0, #f0fdf4, #a7f3d0);
+    background-size: 400% 400%;
+    animation: gradientBG 10s ease infinite;
+    z-index: 0;
+  }
+  @keyframes gradientBG {
+    0% {background-position:0% 50%}
+    50% {background-position:100% 50%}
+    100% {background-position:0% 50%}
+  }
+  .peer:focus ~ label,
+  .peer:not(:placeholder-shown) ~ label,
+  .peer:not([value=""]) ~ label {
+    transform: translateY(-12px) scale(0.9);
+    color: #22c55e;
+    font-weight: 600;
+  }
+  input {
+    background: #f0fdf4;
+    box-shadow: 0 2px 8px 0 rgba(16, 185, 129, 0.06);
+    font-size: 1rem;
+    font-weight: 500;
+    border-width: 2px;
+    border-radius: 0.75rem;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    border-image: linear-gradient(90deg, #22c55e, #06b6d4, #a21caf) 1;
+  }
+  input:focus {
+    background: #fff;
+    border-image: linear-gradient(90deg, #22c55e, #06b6d4, #a21caf) 1;
+    box-shadow: 0 4px 16px 0 rgba(34, 197, 94, 0.12);
+  }
+  .dark input {
+    background: #1f2937;
+    color: #f3f4f6;
+    border-color: #374151;
+  }
+  .dark input:focus {
+    background: #111827;
+    border-image: linear-gradient(90deg, #22d3ee, #a21caf, #22c55e) 1;
+  }
+</style>
+{% endblock %}
+{% block extra_js %}
+<script>
+// Password visibility toggles
+function setupPasswordToggle(inputId, btnId, iconId) {
+  const btn = document.getElementById(btnId);
+  const input = document.getElementById(inputId);
+  const icon = document.getElementById(iconId);
+  if (btn && input && icon) {
+    btn.addEventListener('click', function() {
+      const type = input.type === 'password' ? 'text' : 'password';
+      input.type = type;
+      icon.innerHTML = type === 'password'
+        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />'
+        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.223-3.592m3.1-2.727A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.956 9.956 0 01-1.357 2.572M15 12a3 3 0 11-6 0 3 3 0 016 0z" />';
+    });
+  }
+}
+setupPasswordToggle('id_password1', 'togglePassword1', 'eyeIcon1');
+setupPasswordToggle('id_password2', 'togglePassword2', 'eyeIcon2');
+// Email validation feedback
+const emailInput = document.getElementById('id_email');
+const emailFeedback = document.getElementById('emailFeedback');
+if (emailInput && emailFeedback) {
+  emailInput.addEventListener('input', function() {
+    const value = emailInput.value;
+    const valid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value);
+    if (!valid && value.length > 0) {
+      emailFeedback.textContent = 'Please enter a valid email address.';
+      emailFeedback.classList.remove('hidden');
+    } else {
+      emailFeedback.textContent = '';
+      emailFeedback.classList.add('hidden');
+    }
+  });
+}
+// Password validation feedback
+const password1Input = document.getElementById('id_password1');
+const password2Input = document.getElementById('id_password2');
+const password1Feedback = document.getElementById('password1Feedback');
+const password2Feedback = document.getElementById('password2Feedback');
+if (password1Input && password1Feedback) {
+  password1Input.addEventListener('input', function() {
+    const value = password1Input.value;
+    if (value.length > 0 && value.length < 6) {
+      password1Feedback.textContent = 'Password must be at least 6 characters.';
+      password1Feedback.classList.remove('hidden');
+    } else {
+      password1Feedback.textContent = '';
+      password1Feedback.classList.add('hidden');
+    }
+    // Also check match
+    if (password2Input && password2Input.value.length > 0) {
+      if (password2Input.value !== value) {
+        password2Feedback.textContent = 'Passwords do not match.';
+        password2Feedback.classList.remove('hidden');
+      } else {
+        password2Feedback.textContent = '';
+        password2Feedback.classList.add('hidden');
+      }
+    }
+  });
+}
+if (password2Input && password2Feedback) {
+  password2Input.addEventListener('input', function() {
+    if (password1Input && password2Input.value !== password1Input.value) {
+      password2Feedback.textContent = 'Passwords do not match.';
+      password2Feedback.classList.remove('hidden');
+    } else {
+      password2Feedback.textContent = '';
+      password2Feedback.classList.add('hidden');
+    }
+  });
+}
+// Confetti on submit
+const form = document.getElementById('registerForm');
+const confettiCanvas = document.getElementById('confettiCanvas');
+form.addEventListener('submit', function(e) {
+  setTimeout(() => {
+    confettiCanvas.style.display = 'block';
+    runConfetti(confettiCanvas);
+  }, 100); // Show after submit
+});
+function runConfetti(canvas) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = window.innerWidth;
+  const H = canvas.height = window.innerHeight;
+  const pieces = Array.from({length: 120}, () => ({
+    x: Math.random()*W, y: Math.random()*H/2, r: 6+Math.random()*6, d: Math.random()*W/2, color: `hsl(${Math.random()*360},80%,60%)`, tilt: Math.random()*10, tiltAngle:0, tiltAngleInc:0.05+Math.random()*0.07
+  }));
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    for(const p of pieces) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, 2*Math.PI);
+      ctx.fillStyle = p.color;
+      ctx.fill();
+      p.y += 2+Math.random()*2;
+      p.x += Math.sin(frame/10+p.tilt)*2;
+      p.tiltAngle += p.tiltAngleInc;
+      p.tilt = Math.sin(p.tiltAngle)*8;
+      if(p.y>H) p.y = -10;
+    }
+    frame++;
+    if(frame<120) requestAnimationFrame(draw);
+    else canvas.style.display = 'none';
+  }
+  draw();
+}
+</script>
 {% endblock %}

@@ -60,6 +60,14 @@ from selenium.webdriver.chrome.options import Options
 from PIL import Image
 import time
 from staticmap import StaticMap, CircleMarker
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import user_passes_test
+from .models import LogEntry
+from django.utils import timezone
+from datetime import timedelta
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 @register.filter
 def get_item(dictionary, key):
@@ -142,11 +150,21 @@ def csv_upload_view(request):
                                 lng, lat = map(float, parts)
                                 coords.append((lng, lat))
                         return coords if coords else None
-
+                    def land_type_color(land_type):
+                        if not land_type:
+                            return '7dff0000'  # blue
+                        lt = str(land_type).strip().lower()
+                        if lt == 'government':
+                            return '7d0000ff'  # red
+                        elif lt == 'private':
+                            return '7d00ff00'  # green
+                        else:
+                            return '7dff0000'  # blue
                     for i, row in df.iterrows():
                         try:
                             geometry_col = field_map.get('geometry')
                             geometry_val = row.get(geometry_col) if geometry_col else None
+                            land_type_val = row.get('land_type') or row.get(field_map.get('land_type', 'land_type'))
                             if geometry_val:
                                 coords = parse_wkt_polygon(geometry_val)
                                 if coords:
@@ -156,6 +174,9 @@ def csv_upload_view(request):
                                     for col, val in row.items():
                                         desc.append(f"<b>{col}:</b> {val}")
                                     pol.description = "<br>".join(desc)
+                                    pol.style.polystyle.color = land_type_color(land_type_val)
+                                    pol.style.linestyle.color = 'ff000000'
+                                    pol.style.linestyle.width = 2
                                     continue  # Skip to next row after polygon
                             # Otherwise, fallback to point
                             lat = float(row.get(field_map['lat']))
@@ -175,30 +196,33 @@ def csv_upload_view(request):
                 # --- ACTION: Confirm Mapping & Continue (Import to DB) ---
                 elif action == 'confirm':
                     created_count, updated_count, error_count = 0, 0, 0
+                    # Create UploadHistory for this import
+                    upload_history = UploadHistory.objects.create(user=user, filename=csv_filename, status='Success', error_message='')
                     for i, row_data in enumerate(df.to_dict('records')):
                         try:
                             kitta = row_data.get(field_map['kitta_number'])
                             if not kitta or pd.isna(kitta):
                                 error_count += 1
                                 continue
-                            
-                            defaults = {'data_source': 'CSV'}
+                            defaults = {'data_source': 'CSV', 'upload_history': upload_history}
                             if field_map.get('lat') and field_map.get('lon') and not pd.isna(row_data.get(field_map['lat'])) and not pd.isna(row_data.get(field_map['lon'])):
                                 defaults['lat'] = float(row_data[field_map['lat']])
                                 defaults['lon'] = float(row_data[field_map['lon']])
                             if field_map.get('owner_name') and not pd.isna(row_data.get(field_map['owner_name'])):
                                 defaults['owner_name'] = str(row_data[field_map['owner_name']])
-
                             obj, created = SurveyRecord.objects.update_or_create(kitta_number=str(kitta), defaults=defaults)
                             if created: created_count += 1
                             else: updated_count += 1
+                            # Always link to this upload_history
+                            obj.upload_history = upload_history
+                            obj.save()
                         except Exception:
                             error_count += 1
-                    
                     status = 'Failed' if error_count > 0 else 'Success'
                     message = f'Processed {len(df)} rows with {error_count} errors.' if error_count > 0 else f'Successfully processed {len(df)} rows.'
-                    UploadHistory.objects.create(user=user, filename=csv_filename, status=status, error_message=message)
-                    
+                    upload_history.status = status
+                    upload_history.error_message = message
+                    upload_history.save()
                     messages.success(request, f'Import complete: {created_count} created, {updated_count} updated, {error_count} failed.')
                     os.remove(temp_file_path) # Clean up temp file
                     return redirect('dashboard')
@@ -212,20 +236,20 @@ def csv_upload_view(request):
         form = CSVUploadForm(request.POST, request.FILES)
         if form.is_valid():
             csv_file = form.cleaned_data['file']
-            
             # --- Temporary file storage ---
             temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp_csv')
             os.makedirs(temp_dir, exist_ok=True)
             temp_filename = f"{uuid.uuid4()}.csv"
             temp_file_path = os.path.join(temp_dir, temp_filename)
-            
             with open(temp_file_path, 'wb+') as destination:
                 for chunk in csv_file.chunks():
                     destination.write(chunk)
-            
+            # Clear any previous preview/session data
+            for key in ['temp_csv_path', 'csv_filename', 'csv_preview', 'csv_columns', 'csv_field_map']:
+                if key in request.session:
+                    del request.session[key]
             request.session['temp_csv_path'] = temp_file_path
             request.session['csv_filename'] = csv_file.name
-            
             try:
                 # Initial parsing and rendering logic
                 df = robust_read_csv(temp_file_path)
@@ -241,13 +265,10 @@ def csv_upload_view(request):
                     if col.strip().lower() in options:
                         field_map[key] = col
                         break
-            
             request.session['csv_preview'] = df.head(10).to_dict('records')
             request.session['csv_columns'] = list(df.columns)
             request.session['csv_field_map'] = field_map
-            
             field_labels = {'kitta_number': 'Kitta Number', 'lat': 'Latitude', 'lon': 'Longitude', 'owner_name': 'Owner Name', 'geometry': 'Geometry (WKT/GeoJSON)'}
-            
             return render(request, 'surveys/csv_field_mapping.html', {'columns': list(df.columns), 'field_map': field_map, 'preview_rows': request.session['csv_preview'], 'form': form, 'field_labels': field_labels})
 
     else:
@@ -360,11 +381,35 @@ def kml_export_view(request):
     import simplekml
     records = get_filtered_records(request)
     kml = simplekml.Kml()
+    def land_type_color(land_type):
+        if not land_type:
+            return '7dff0000'  # blue
+        lt = str(land_type).strip().lower()
+        if lt == 'government':
+            return '7d0000ff'  # red
+        elif lt == 'private':
+            return '7d00ff00'  # green
+        else:
+            return '7dff0000'  # blue
     for record in records:
         if record.lat and record.lon:
             pnt = kml.newpoint(name=record.kitta_number or 'Unknown')
             pnt.coords = [(record.lon, record.lat)]
             pnt.description = f"Owner: {record.owner_name or 'Unknown'}<br>Land Type: {record.land_type or 'Unknown'}<br>Area: {record.area_size or 0} sq m"
+        # If you have polygons, add them here with color
+        if hasattr(record, 'geometry') and record.geometry:
+            try:
+                from shapely import wkt as shapely_wkt
+                shape = shapely_wkt.loads(record.geometry)
+                if shape.geom_type == 'Polygon':
+                    coords = list(shape.exterior.coords)
+                    pol = kml.newpolygon(name=record.kitta_number or 'Unknown', outerboundaryis=coords)
+                    pol.description = f"Owner: {record.owner_name or 'Unknown'}<br>Land Type: {record.land_type or 'Unknown'}<br>Area: {record.area_size or 0} sq m"
+                    pol.style.polystyle.color = land_type_color(record.land_type)
+                    pol.style.linestyle.color = 'ff000000'
+                    pol.style.linestyle.width = 2
+            except Exception:
+                pass
     response = HttpResponse(kml.kml(), content_type='application/vnd.google-earth.kml+xml')
     response['Content-Disposition'] = 'attachment; filename="survey_records.kml"'
     return response
@@ -665,14 +710,19 @@ def boundaries_geojson_api(request, pk=None):
     return Response({'type': 'FeatureCollection', 'features': features})
 
 def survey_list_view(request):
-    records = SurveyRecord.objects.all().order_by('-created_at')
+    from .models import UploadHistory
+    # Only show records from the latest successful upload
+    latest_upload = UploadHistory.objects.filter(status='Success').order_by('-upload_time').first()
+    if latest_upload:
+        records = SurveyRecord.objects.filter(upload_history=latest_upload).order_by('-created_at')
+    else:
+        records = SurveyRecord.objects.none()
     # Filtering
     kitta_number = request.GET.get('kitta_number', '').strip()
     owner_name = request.GET.get('owner_name', '').strip()
     area_min = request.GET.get('area_min', '').strip()
     area_max = request.GET.get('area_max', '').strip()
     search = request.GET.get('search', '').strip()
-
     if kitta_number:
         records = records.filter(kitta_number__icontains=kitta_number)
     if owner_name:
@@ -740,7 +790,13 @@ def survey_delete_view(request, pk):
     return redirect('survey_list')
 
 def map_view(request):
-    records = SurveyRecord.objects.filter(lat__isnull=False, lon__isnull=False)
+    from .models import UploadHistory, Boundary
+    # Only show records from the latest successful upload
+    latest_upload = UploadHistory.objects.filter(status='Success').order_by('-upload_time').first()
+    if latest_upload:
+        records = SurveyRecord.objects.filter(upload_history=latest_upload, lat__isnull=False, lon__isnull=False)
+    else:
+        records = SurveyRecord.objects.none()
     # Prepare survey points for JS
     survey_points = [
         {
@@ -756,7 +812,6 @@ def map_view(request):
         for r in records
     ]
     # Prepare boundary polygons for JS
-    from .models import Boundary
     boundaries = Boundary.objects.all()
     boundary_features = []
     for b in boundaries:
@@ -796,13 +851,19 @@ def safe_json(val):
     return val
 
 def dashboard_view(request):
-    from .models import UploadHistory
+    from .models import UploadHistory, SurveyRecord
     from django.db.models import Count, Sum
+    # Find latest successful upload
+    latest_upload = UploadHistory.objects.filter(status='Success').order_by('-upload_time').first()
+    if latest_upload:
+        records_qs = SurveyRecord.objects.filter(upload_history=latest_upload)
+    else:
+        records_qs = SurveyRecord.objects.none()
     # Summary stats
-    total_surveys = SurveyRecord.objects.count()
-    total_boundaries = SurveyRecord.objects.filter(has_boundary=True).count()
-    total_area = SurveyRecord.objects.aggregate(total=Sum('area_size'))['total'] or 0
-    land_type_stats_qs = SurveyRecord.objects.values('land_type').annotate(count=Count('id')).order_by('-count')
+    total_surveys = records_qs.count()
+    total_boundaries = records_qs.filter(has_boundary=True).count()
+    total_area = records_qs.aggregate(total=Sum('area_size'))['total'] or 0
+    land_type_stats_qs = records_qs.values('land_type').annotate(count=Count('id')).order_by('-count')
     land_type_stats = {lt['land_type'] or 'Unknown': {'count': lt['count']} for lt in land_type_stats_qs}
     # Inject dummy data if empty
     if not land_type_stats:
@@ -821,17 +882,15 @@ def dashboard_view(request):
     area_progress = min(int(total_area / 10000), 100)  # Example scaling
     land_types_progress = min(len(land_type_stats) * 20, 100)
     # Recent surveys
-    recent_surveys = SurveyRecord.objects.order_by('-created_at')[:5]
+    recent_surveys = records_qs.order_by('-created_at')[:5]
     # Upload history (only successful uploads)
     upload_history = UploadHistory.objects.filter(user=request.user, status='Success').order_by('-upload_time')[:10] if request.user.is_authenticated else []
     # Survey points for map (convert Decimal, datetime, and None)
     survey_points = [
         {k: safe_json(v) for k, v in point.items()}
-        for point in SurveyRecord.objects.exclude(lat__isnull=True).exclude(lon__isnull=True).values('kitta_number', 'owner_name', 'lat', 'lon', 'land_type', 'area_size', 'created_at')
+        for point in records_qs.exclude(lat__isnull=True).exclude(lon__isnull=True).values('kitta_number', 'owner_name', 'lat', 'lon', 'land_type', 'area_size', 'created_at')
     ]
-    # Boundary data for map (dummy, extend as needed)
     boundary_data = []  # Add logic if you have boundary polygons
-    # Serialize for JS
     survey_points_json = json.dumps(survey_points)
     boundary_data_json = json.dumps(boundary_data)
     land_type_stats_json = json.dumps(land_type_stats)
@@ -971,3 +1030,366 @@ def get_mapbox_static_image_base64(records, width=600, height=400):
         encoded = base64.b64encode(response.content).decode('utf-8')
         return f"data:image/png;base64,{encoded}"
     return None
+
+@login_required
+def upload_history_view(request):
+    from .models import UploadHistory
+    uploads = UploadHistory.objects.filter(user=request.user).order_by('-upload_time')
+    return render(request, 'surveys/upload_history.html', {'uploads': uploads})
+
+# Custom login view
+from django.views.decorators.csrf import csrf_protect
+@csrf_protect
+def custom_login_view(request):
+    error = None
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        ADMIN_EMAIL = 'acharyautsab390@gmail.com'
+        user = authenticate(request, username=email, password=password)
+        if user is not None:
+            login(request, user)
+            if email == ADMIN_EMAIL:
+                request.session['is_admin'] = True
+                request.session['user_email'] = email
+                LogEntry.objects.create(user=user, action='Admin Login', details=f'Admin {email} logged in', level='INFO')
+                return redirect('admin_dashboard')
+            else:
+                request.session['is_admin'] = False
+                request.session['user_email'] = email
+                return redirect('user_dashboard')
+        else:
+            error = 'Invalid credentials.'
+    return render(request, 'accounts/login.html', {'error': error})
+
+# Logout view
+def custom_logout_view(request):
+    logout(request)
+    request.session.flush()
+    return redirect('login')
+
+# Admin dashboard view
+@login_required
+def admin_dashboard_view(request):
+    if not request.session.get('is_admin'):
+        return redirect('user_dashboard')
+    from .models import UploadHistory, SurveyRecord, LogEntry
+    from django.db.models import Count, Sum, Q
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    # Log filters
+    user_id = request.GET.get('log_user', '')
+    level = request.GET.get('log_level', '')
+    start_date = request.GET.get('log_start', '')
+    end_date = request.GET.get('log_end', '')
+    keyword = request.GET.get('log_keyword', '')
+    log_page = int(request.GET.get('log_page', 1))
+    logs_qs = LogEntry.objects.select_related('user').all()
+    if user_id:
+        logs_qs = logs_qs.filter(user_id=user_id)
+    if level:
+        logs_qs = logs_qs.filter(level=level)
+    if start_date:
+        logs_qs = logs_qs.filter(timestamp__gte=start_date)
+    if end_date:
+        logs_qs = logs_qs.filter(timestamp__lte=end_date)
+    if keyword:
+        logs_qs = logs_qs.filter(Q(action__icontains=keyword) | Q(details__icontains=keyword))
+    logs_qs = logs_qs.order_by('-timestamp')
+    paginator = Paginator(logs_qs, 20)
+    logs = paginator.get_page(log_page)
+    users = User.objects.all()
+    latest_upload = UploadHistory.objects.filter(status='Success').order_by('-upload_time').first()
+    if latest_upload:
+        records_qs = SurveyRecord.objects.filter(upload_history=latest_upload)
+    else:
+        records_qs = SurveyRecord.objects.none()
+    total_surveys = records_qs.count()
+    total_boundaries = records_qs.filter(has_boundary=True).count()
+    total_area = records_qs.aggregate(total=Sum('area_size'))['total'] or 0
+    land_type_stats_qs = records_qs.values('land_type').annotate(count=Count('id')).order_by('-count')
+    land_type_stats = {lt['land_type'] or 'Unknown': {'count': lt['count']} for lt in land_type_stats_qs}
+    if not land_type_stats:
+        land_type_stats = {
+            "Agriculture": {"count": 10},
+            "Residential": {"count": 5},
+            "Commercial": {"count": 3}
+        }
+    for k, v in land_type_stats.items():
+        if isinstance(v.get('count'), Decimal):
+            v['count'] = float(v['count'])
+    surveys_progress = 100
+    boundaries_progress = int((total_boundaries / total_surveys) * 100) if total_surveys else 0
+    area_progress = min(int(total_area / 10000), 100)
+    land_types_progress = min(len(land_type_stats) * 20, 100)
+    recent_surveys = records_qs.order_by('-created_at')[:5]
+    upload_history = UploadHistory.objects.filter(user=request.user, status='Success').order_by('-upload_time')[:10] if request.user.is_authenticated else []
+    survey_points = [
+        {k: safe_json(v) for k, v in point.items()}
+        for point in records_qs.exclude(lat__isnull=True).exclude(lon__isnull=True).values('kitta_number', 'owner_name', 'lat', 'lon', 'land_type', 'area_size', 'created_at')
+    ]
+    boundary_data = []
+    survey_points_json = json.dumps(survey_points)
+    boundary_data_json = json.dumps(boundary_data)
+    land_type_stats_json = json.dumps(land_type_stats)
+    context = {
+        'total_surveys': total_surveys,
+        'total_boundaries': total_boundaries,
+        'total_area': total_area,
+        'land_type_stats': land_type_stats,
+        'land_type_stats_json': land_type_stats_json,
+        'surveys_progress': surveys_progress,
+        'boundaries_progress': boundaries_progress,
+        'area_progress': area_progress,
+        'land_types_progress': land_types_progress,
+        'recent_surveys': recent_surveys,
+        'upload_history': upload_history,
+        'survey_points': survey_points,
+        'survey_points_json': survey_points_json,
+        'boundary_data': boundary_data,
+        'boundary_data_json': boundary_data_json,
+        'is_admin': True,
+        'logs': logs,
+        'log_users': users,
+        'log_user_selected': user_id,
+        'log_level_selected': level,
+        'log_start_selected': start_date,
+        'log_end_selected': end_date,
+        'log_keyword': keyword,
+        'log_paginator': paginator,
+    }
+    return render(request, 'surveys/dashboard.html', context)
+
+# User dashboard view
+@login_required
+def user_dashboard_view(request):
+    if request.session.get('is_admin'):
+        return redirect('admin_dashboard')
+    # Use dashboard_view logic
+    from .models import UploadHistory, SurveyRecord
+    from django.db.models import Count, Sum
+    latest_upload = UploadHistory.objects.filter(status='Success').order_by('-upload_time').first()
+    if latest_upload:
+        records_qs = SurveyRecord.objects.filter(upload_history=latest_upload)
+    else:
+        records_qs = SurveyRecord.objects.none()
+    total_surveys = records_qs.count()
+    total_boundaries = records_qs.filter(has_boundary=True).count()
+    total_area = records_qs.aggregate(total=Sum('area_size'))['total'] or 0
+    land_type_stats_qs = records_qs.values('land_type').annotate(count=Count('id')).order_by('-count')
+    land_type_stats = {lt['land_type'] or 'Unknown': {'count': lt['count']} for lt in land_type_stats_qs}
+    if not land_type_stats:
+        land_type_stats = {
+            "Agriculture": {"count": 10},
+            "Residential": {"count": 5},
+            "Commercial": {"count": 3}
+        }
+    for k, v in land_type_stats.items():
+        if isinstance(v.get('count'), Decimal):
+            v['count'] = float(v['count'])
+    surveys_progress = 100
+    boundaries_progress = int((total_boundaries / total_surveys) * 100) if total_surveys else 0
+    area_progress = min(int(total_area / 10000), 100)
+    land_types_progress = min(len(land_type_stats) * 20, 100)
+    recent_surveys = records_qs.order_by('-created_at')[:5]
+    upload_history = UploadHistory.objects.filter(user=request.user, status='Success').order_by('-upload_time')[:10] if request.user.is_authenticated else []
+    survey_points = [
+        {k: safe_json(v) for k, v in point.items()}
+        for point in records_qs.exclude(lat__isnull=True).exclude(lon__isnull=True).values('kitta_number', 'owner_name', 'lat', 'lon', 'land_type', 'area_size', 'created_at')
+    ]
+    boundary_data = []
+    survey_points_json = json.dumps(survey_points)
+    boundary_data_json = json.dumps(boundary_data)
+    land_type_stats_json = json.dumps(land_type_stats)
+    context = {
+        'total_surveys': total_surveys,
+        'total_boundaries': total_boundaries,
+        'total_area': total_area,
+        'land_type_stats': land_type_stats,
+        'land_type_stats_json': land_type_stats_json,
+        'surveys_progress': surveys_progress,
+        'boundaries_progress': boundaries_progress,
+        'area_progress': area_progress,
+        'land_types_progress': land_types_progress,
+        'recent_surveys': recent_surveys,
+        'upload_history': upload_history,
+        'survey_points': survey_points,
+        'survey_points_json': survey_points_json,
+        'boundary_data': boundary_data,
+        'boundary_data_json': boundary_data_json,
+        'is_admin': False,
+    }
+    return render(request, 'surveys/dashboard.html', context)
+
+# User management views (admin only)
+@user_passes_test(lambda u: u.is_staff or u.username == 'utsab')
+def user_list_view(request):
+    users = User.objects.all().order_by('-is_staff', 'username')
+    return render(request, 'user_management/user_list.html', {'users': users})
+
+@user_passes_test(lambda u: u.is_staff or u.username == 'utsab')
+def user_add_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        is_staff = bool(request.POST.get('is_staff'))
+        if username and password:
+            user = User.objects.create_user(username=username, email=email, password=password)
+            user.is_staff = is_staff
+            user.save()
+            LogEntry.objects.create(user=request.user, action='Add User', details=f'Added user {username}', level='ACTION')
+            messages.success(request, 'User added successfully!')
+            return redirect('user_list')
+        else:
+            messages.error(request, 'Username and password are required.')
+    return render(request, 'user_management/user_add.html')
+
+@user_passes_test(lambda u: u.is_staff or u.username == 'utsab')
+def user_edit_view(request, user_id):
+    user = get_object_or_404(User, pk=user_id)
+    if request.method == 'POST':
+        user.email = request.POST.get('email')
+        user.is_staff = bool(request.POST.get('is_staff'))
+        password = request.POST.get('password')
+        if password:
+            user.set_password(password)
+        user.save()
+        LogEntry.objects.create(user=request.user, action='Edit User', details=f'Edited user {user.username}', level='ACTION')
+        messages.success(request, 'User updated successfully!')
+        return redirect('user_list')
+    return render(request, 'user_management/user_edit.html', {'user': user})
+
+@user_passes_test(lambda u: u.is_staff or u.username == 'utsab')
+def user_delete_view(request, user_id):
+    user = get_object_or_404(User, pk=user_id)
+    if request.method == 'POST':
+        user.delete()
+        LogEntry.objects.create(user=request.user, action='Delete User', details=f'Deleted user {user.username}', level='ACTION')
+        messages.success(request, 'User deleted successfully!')
+        return redirect('user_list')
+    return render(request, 'user_management/user_delete_confirm.html', {'user': user})
+
+@login_required
+def export_users_csv(request):
+    if not request.session.get('is_admin'):
+        return HttpResponse('Unauthorized', status=403)
+    # Log export
+    LogEntry.objects.create(user=request.user, action='Export Users', details='Exported all users as CSV', level='ACTION')
+    import csv
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="users.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['Username', 'Email', 'Is Staff', 'Date Joined'])
+    for user in User.objects.all():
+        writer.writerow([user.username, user.email, user.is_staff, user.date_joined])
+    return response
+
+@login_required
+def export_logs_csv(request):
+    if not request.session.get('is_admin'):
+        return HttpResponse('Unauthorized', status=403)
+    from .models import LogEntry
+    from django.contrib.auth import get_user_model
+    import csv
+    from django.db.models import Q
+    User = get_user_model()
+    # Use same filters as dashboard
+    user_id = request.GET.get('log_user', '')
+    level = request.GET.get('log_level', '')
+    start_date = request.GET.get('log_start', '')
+    end_date = request.GET.get('log_end', '')
+    keyword = request.GET.get('log_keyword', '')
+    logs_qs = LogEntry.objects.select_related('user').all()
+    if user_id:
+        logs_qs = logs_qs.filter(user_id=user_id)
+    if level:
+        logs_qs = logs_qs.filter(level=level)
+    if start_date:
+        logs_qs = logs_qs.filter(timestamp__gte=start_date)
+    if end_date:
+        logs_qs = logs_qs.filter(timestamp__lte=end_date)
+    if keyword:
+        logs_qs = logs_qs.filter(Q(action__icontains=keyword) | Q(details__icontains=keyword))
+    logs = logs_qs.order_by('-timestamp')
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="logs.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['Timestamp', 'Level', 'User', 'Action', 'Details'])
+    for log in logs:
+        writer.writerow([
+            log.timestamp.strftime('%Y-%m-%d %H:%M'),
+            log.level,
+            log.user.username if log.user else '-',
+            log.action,
+            log.details
+        ])
+    return response
+
+@login_required
+def delete_old_logs(request):
+    if not request.session.get('is_admin') or request.method != 'POST':
+        return HttpResponse('Unauthorized', status=403)
+    from .models import LogEntry
+    cutoff = timezone.now() - timedelta(days=90)
+    count = LogEntry.objects.filter(timestamp__lt=cutoff).count()
+    LogEntry.objects.filter(timestamp__lt=cutoff).delete()
+    LogEntry.objects.create(user=request.user, action='Delete Old Logs', details=f'Deleted {count} logs older than 90 days', level='ACTION')
+    return redirect('admin_dashboard')
+
+@login_required
+def admin_logs_api(request):
+    if not request.session.get('is_admin'):
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    from .models import LogEntry
+    from django.contrib.auth import get_user_model
+    from django.db.models import Q
+    User = get_user_model()
+    user_id = request.GET.get('log_user', '')
+    level = request.GET.get('log_level', '')
+    start_date = request.GET.get('log_start', '')
+    end_date = request.GET.get('log_end', '')
+    keyword = request.GET.get('log_keyword', '')
+    log_page = int(request.GET.get('log_page', 1))
+    from django.core.paginator import Paginator
+    logs_qs = LogEntry.objects.select_related('user').all()
+    if user_id:
+        logs_qs = logs_qs.filter(user_id=user_id)
+    if level:
+        logs_qs = logs_qs.filter(level=level)
+    if start_date:
+        logs_qs = logs_qs.filter(timestamp__gte=start_date)
+    if end_date:
+        logs_qs = logs_qs.filter(timestamp__lte=end_date)
+    if keyword:
+        logs_qs = logs_qs.filter(Q(action__icontains=keyword) | Q(details__icontains=keyword))
+    logs_qs = logs_qs.order_by('-timestamp')
+    paginator = Paginator(logs_qs, 20)
+    logs = paginator.get_page(log_page)
+    data = {
+        'logs': [
+            {
+                'id': log.id,
+                'timestamp': log.timestamp.strftime('%Y-%m-%d %H:%M'),
+                'level': log.level,
+                'user': log.user.username if log.user else '-',
+                'action': log.action,
+                'details': log.details,
+            } for log in logs
+        ],
+        'page': logs.number,
+        'num_pages': logs.paginator.num_pages,
+        'has_next': logs.has_next(),
+        'has_previous': logs.has_previous(),
+    }
+    return JsonResponse(data)
+
+@login_required
+def activity_view(request):
+    return render(request, 'activity.html')
+
+@login_required
+def settings_view(request):
+    return render(request, 'settings.html')

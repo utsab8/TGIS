@@ -11,7 +11,10 @@ from .views import (
     survey_delete_view, download_generated_kml, 
     download_all_surveys_kml, dashboard_view, download_error_report, 
     help_view, advanced_csv_upload, boundaries_geojson_api, 
-    excel_export_view, kml_export_view, pdf_export_view
+    excel_export_view, kml_export_view, pdf_export_view, upload_history_view,
+    custom_login_view, admin_dashboard_view, user_list_view, user_add_view, user_edit_view, user_delete_view,
+    custom_logout_view, user_dashboard_view, export_users_csv, export_logs_csv, delete_old_logs, admin_logs_api,
+    activity_view, settings_view
 )
 from rest_framework.routers import DefaultRouter
 
@@ -26,6 +29,10 @@ urlpatterns = [
     path('upload-attachment/', attachment_upload_view, name='attachment_upload'),
     path('delete-attachment/<int:pk>/', attachment_delete_view, name='attachment_delete'),
     path('map-view/', map_view, name='map_view'),
+    path('login/', custom_login_view, name='login'),
+    path('logout/', custom_logout_view, name='logout'),
+    path('admin-dashboard/', admin_dashboard_view, name='admin_dashboard'),
+    path('user-dashboard/', user_dashboard_view, name='user_dashboard'),
 ]
 
 urlpatterns += [
@@ -97,4 +104,37 @@ urlpatterns += [
     path('export-excel/', excel_export_view, name='excel_export'),
     path('export-kml/', kml_export_view, name='kml_export'),
     path('export-pdf/', pdf_export_view, name='pdf_export'),
+]
+
+urlpatterns += [
+    path('upload-history/', upload_history_view, name='upload_history'),
+]
+
+urlpatterns += [
+    path('user-management/', user_list_view, name='user_list'),
+    path('user-management/add/', user_add_view, name='user_add'),
+    path('user-management/<int:user_id>/edit/', user_edit_view, name='user_edit'),
+    path('user-management/<int:user_id>/delete/', user_delete_view, name='user_delete'),
+]
+
+urlpatterns += [
+    path('admin/export-users-csv/', export_users_csv, name='export_users_csv'),
+]
+
+urlpatterns += [
+    path('admin/export-logs-csv/', export_logs_csv, name='export_logs_csv'),
+]
+
+urlpatterns += [
+    path('admin/delete-old-logs/', delete_old_logs, name='delete_old_logs'),
+]
+
+urlpatterns += [
+    path('admin/api/logs/', admin_logs_api, name='admin_logs_api'),
+]
+
+urlpatterns += [
+    path('activity/', activity_view, name='activity'),
+    path('help/', help_view, name='help'),
+    path('settings/', settings_view, name='settings'),
 ]

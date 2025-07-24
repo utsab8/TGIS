@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-3xl mx-auto mt-10 p-8 bg-white rounded-xl shadow">
+  <h1 class="text-3xl font-bold text-green-700 mb-4">User Dashboard</h1>
+  <p class="mb-6">Welcome, {{ request.session.user_email|default:'User' }}!</p>
+  <nav class="mb-6">
+    <a href="#features" class="text-green-600 hover:underline">Shared Features</a>
+    <a href="{% url 'logout' %}" class="ml-4 text-gray-500 hover:underline">Logout</a>
+  </nav>
+  <section id="features">
+    <h2 class="text-xl font-semibold mb-2">Shared Features</h2>
+    <ul class="list-disc ml-6 text-gray-700">
+      <li>View dashboard stats</li>
+      <li>Access reports</li>
+      <li>Other common features...</li>
+    </ul>
+  </section>
+</div>
+{% endblock %} 

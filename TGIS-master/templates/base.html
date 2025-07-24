@@ -36,38 +36,111 @@
             z-index: 9999 !important;
             overflow: visible !important;
         }
+        /* Custom animation for login/signup */
+        .animate-fade-in-up {
+            animation: fadeInUp 1s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        @keyframes fadeInUp {
+            0% { opacity: 0; transform: translateY(40px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-bounce-slow {
+            animation: bounceSlow 2.5s infinite;
+        }
+        @keyframes bounceSlow {
+            0%, 100% { transform: translateY(0); }
+            20% { transform: translateY(-8px); }
+            40% { transform: translateY(0); }
+            60% { transform: translateY(-4px); }
+            80% { transform: translateY(0); }
+        }
     </style>
     {% block extra_css %}{% endblock %}
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
 </head>
 <body class="bg-gray-50 min-h-screen">
-    <nav class="bg-white shadow-md sticky top-0 z-50 fade-in">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-4">
-                <a href="/" class="text-2xl font-extrabold text-blue-600 navbar-anim">GeoSurveyPro</a>
-                <a href="/surveys/dashboard/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Dashboard</a>
-                <a href="/upload/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Upload</a>
-                <a href="/surveys/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Survey List</a>
-                <a href="/surveys/map-view/" class="text-gray-700 hover:text-blue-600 font-semibold navbar-anim">Map View</a>
-                <!-- KML Help link removed -->
+    <!-- Modern, Larger Navbar -->
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-lg shadow-2xl">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between rounded-b-2xl min-h-[84px]">
+            <div class="flex items-center space-x-6">
+                <a href="/" class="flex items-center gap-3 text-3xl font-extrabold text-blue-700 navbar-anim tracking-tight">
+                    <img src="/static/logo.png" alt="Logo" class="w-14 h-14 rounded-full shadow-lg border-4 border-blue-200 bg-white" onerror="this.style.display='none'">
+                    <span class="drop-shadow-lg">GeoSurveyPro</span>
+                </a>
+                <!-- Hamburger for mobile -->
+                <button id="navbarToggle" class="md:hidden ml-2 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" aria-label="Open menu">
+                    <svg class="w-7 h-7 text-blue-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
             </div>
-            <div class="flex items-center space-x-2">
+            <!-- Desktop nav links -->
+            <div class="hidden md:flex items-center bg-gray-100/80 rounded-full px-4 py-2 shadow-inner space-x-2 ml-4" id="navbarLinks">
+                <a href="/surveys/dashboard/" class="px-5 py-2 rounded-full text-lg text-gray-700 hover:bg-blue-100 hover:text-blue-700 font-semibold transition transform hover:scale-110">Dashboard</a>
+                <a href="/upload/" class="px-5 py-2 rounded-full text-lg text-gray-700 hover:bg-blue-100 hover:text-blue-700 font-semibold transition transform hover:scale-110">Upload</a>
+                <a href="/surveys/" class="px-5 py-2 rounded-full text-lg text-gray-700 hover:bg-blue-100 hover:text-blue-700 font-semibold transition transform hover:scale-110">Survey List</a>
+                <a href="/surveys/map-view/" class="px-5 py-2 rounded-full text-lg text-gray-700 hover:bg-blue-100 hover:text-blue-700 font-semibold transition transform hover:scale-110">Map View</a>
+                {% if user.is_authenticated and request.session.is_admin %}
+                    <a href="{% url 'user_list' %}" class="px-5 py-2 rounded-full text-lg text-gray-700 hover:bg-green-100 hover:text-green-700 font-semibold transition transform hover:scale-110">User Management</a>
+                    <a href="{% url 'admin_dashboard' %}#logs" class="px-5 py-2 rounded-full text-lg text-gray-700 hover:bg-yellow-100 hover:text-yellow-700 font-semibold transition transform hover:scale-110">Logs</a>
+                {% endif %}
+            </div>
+            <!-- Profile/Login/Register always visible -->
+            <div class="flex items-center space-x-3">
                 {% if user.is_authenticated %}
-                <!-- Profile Modal Trigger -->
-                <button id="profileBtn" class="flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded shadow navbar-anim font-semibold focus:outline-none">
-                    <svg class="w-5 h-5 mr-1 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    Profile
+                <button id="profileBtn" class="flex items-center px-5 py-2 bg-blue-100 text-blue-700 rounded-full shadow-lg navbar-anim font-semibold focus:outline-none text-lg transition transform hover:scale-110">
+                    <svg class="w-7 h-7 mr-2 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <span class="hidden sm:inline">Profile</span>
                 </button>
                 <!-- Profile Modal -->
-                <div id="profileModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden">
-                    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm animate-fade-in-up relative">
+                <div id="profileModal" class="fixed inset-0 z-50 bg-black bg-opacity-40 hidden pointer-events-none">
+                    <div class="fixed top-2/3 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xs sm:max-w-md md:max-w-lg px-2 max-h-[80vh] overflow-y-auto flex flex-col items-center pointer-events-auto">
                         <button id="closeProfileModal" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-2xl font-bold">&times;</button>
-                        <div class="flex flex-col items-center">
+                        <div class="flex flex-col items-center gap-2 w-full">
                             <svg class="w-16 h-16 text-blue-500 mb-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                            <div class="text-lg font-bold text-blue-700 mb-1">{{ user.username }}</div>
-                            <div class="text-gray-500 mb-6">Logged in as</div>
-                            <a href="/accounts/logout/" class="w-full py-2 px-4 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg shadow-md transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-400 text-center">Logout</a>
+                            <div class="text-xl font-bold text-blue-700 mb-1 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                {{ user.username }}
+                            </div>
+                            {% if user.email %}
+                            <div class="text-gray-600 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-blue-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 12H8m8 0a4 4 0 11-8 0 4 4 0 018 0zm0 0v1a4 4 0 01-8 0v-1"/></svg>
+                                {{ user.email }}
+                            </div>
+                            {% endif %}
+                            {% if user.date_joined %}
+                            <div class="text-gray-500 text-sm flex items-center gap-2">
+                                <svg class="w-5 h-5 text-blue-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                Joined: {{ user.date_joined|date:"F j, Y" }}
+                            </div>
+                            {% endif %}
+                            <hr class="my-3 w-full border-gray-200">
+                            <a href="/accounts/password_change/" class="w-full py-2 px-4 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-semibold rounded-lg shadow-md transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-400 text-center flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 11c0-1.104.896-2 2-2s2 .896 2 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2c0-1.104.896-2 2-2z"/></svg>
+                                Change Password
+                            </a>
+                            <a href="/settings/" class="w-full py-2 px-4 bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold rounded-lg shadow-md transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400 text-center flex items-center justify-center gap-2 mt-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Settings
+                            </a>
+                            <a href="/activity/" class="w-full py-2 px-4 bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold rounded-lg shadow-md transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-400 text-center flex items-center justify-center gap-2 mt-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2a4 4 0 018 0v2M9 7h.01M15 7h.01M12 7h.01M12 11v2m0 4h.01"/></svg>
+                                My Activity
+                            </a>
+                            <a href="/help/" class="w-full py-2 px-4 bg-teal-100 hover:bg-teal-200 text-teal-800 font-semibold rounded-lg shadow-md transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-teal-400 text-center flex items-center justify-center gap-2 mt-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 14h.01M16 10h.01M12 18h.01M12 6h.01"/></svg>
+                                Help
+                            </a>
+                            {% if request.session.is_admin %}
+                            <a href="{% url 'admin_dashboard' %}" class="w-full py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-lg shadow-md transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-400 text-center flex items-center justify-center gap-2 mt-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v4a1 1 0 001 1h3v6a1 1 0 001 1h4a1 1 0 001-1v-6h3a1 1 0 001-1V7a1 1 0 00-1-1H4a1 1 0 00-1 1z"/></svg>
+                                Admin Panel
+                            </a>
+                            {% endif %}
+                            <hr class="my-3 w-full border-gray-200">
+                            <a href="/accounts/logout/" class="w-full py-2 px-4 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg shadow-md transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-400 text-center flex items-center justify-center gap-2 mt-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1"/></svg>
+                                Logout
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -84,12 +157,38 @@
                 });
                 </script>
                 {% else %}
-                    <a href="/accounts/login/" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded shadow navbar-anim">Login</a>
-                    <a href="/accounts/register/" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded shadow navbar-anim">Register</a>
+                    <a href="/accounts/login/" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-full shadow-lg navbar-anim text-lg transition transform hover:scale-110">Login</a>
+                    <a href="/accounts/register/" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-full shadow-lg navbar-anim text-lg transition transform hover:scale-110">Register</a>
                 {% endif %}
             </div>
         </div>
+        <!-- Mobile nav links -->
+        <div id="mobileNav" class="md:hidden hidden px-4 pb-4">
+            <div class="flex flex-col gap-2 bg-gray-100/90 rounded-2xl shadow-lg p-4 mt-2">
+                <a href="/surveys/dashboard/" class="py-2 rounded text-gray-700 hover:bg-blue-100 hover:text-blue-700 font-semibold transition">Dashboard</a>
+                <a href="/upload/" class="py-2 rounded text-gray-700 hover:bg-blue-100 hover:text-blue-700 font-semibold transition">Upload</a>
+                <a href="/surveys/" class="py-2 rounded text-gray-700 hover:bg-blue-100 hover:text-blue-700 font-semibold transition">Survey List</a>
+                <a href="/surveys/map-view/" class="py-2 rounded text-gray-700 hover:bg-blue-100 hover:text-blue-700 font-semibold transition">Map View</a>
+                {% if user.is_authenticated and request.session.is_admin %}
+                    <a href="{% url 'user_list' %}" class="py-2 rounded text-gray-700 hover:bg-green-100 hover:text-green-700 font-semibold transition">User Management</a>
+                    <a href="{% url 'admin_dashboard' %}#logs" class="py-2 rounded text-gray-700 hover:bg-yellow-100 hover:text-yellow-700 font-semibold transition">Logs</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="h-2 bg-gradient-to-r from-blue-500 via-green-300 to-yellow-200 w-full rounded-b-2xl shadow"></div>
     </nav>
+    <script>
+    // Mobile navbar toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        var toggle = document.getElementById('navbarToggle');
+        var mobileNav = document.getElementById('mobileNav');
+        if (toggle && mobileNav) {
+            toggle.onclick = function() {
+                mobileNav.classList.toggle('hidden');
+            };
+        }
+    });
+    </script>
     <div class="max-w-7xl mx-auto px-4 py-6 fade-in">
         {% if messages %}
             <div class="space-y-2 mb-4">

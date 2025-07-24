@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 # Create your models here.
 
@@ -15,6 +16,7 @@ class SurveyRecord(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    upload_history = models.ForeignKey('UploadHistory', on_delete=models.SET_NULL, null=True, blank=True, related_name='survey_records')
 
     def __str__(self):
         return f"{self.kitta_number} - {self.owner_name}"
@@ -47,3 +49,18 @@ class Boundary(models.Model):
 
     def __str__(self):
         return f"Boundary for {self.survey_record.kitta_number}"
+
+class LogEntry(models.Model):
+    LEVEL_CHOICES = [
+        ('INFO', 'Info'),
+        ('ACTION', 'Action'),
+        ('ERROR', 'Error'),
+    ]
+    timestamp = models.DateTimeField(default=timezone.now)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='survey_logs')
+    action = models.CharField(max_length=100)
+    details = models.TextField(blank=True)
+    level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default='INFO')
+
+    def __str__(self):
+        return f"[{self.timestamp}] {self.user} {self.level} {self.action}"

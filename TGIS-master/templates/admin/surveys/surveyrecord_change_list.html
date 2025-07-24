@@ -1,0 +1,287 @@
+{% extends "admin/change_list.html" %}
+{% block content_title %}
+  <style>
+    .dashboard-card { background: linear-gradient(135deg, var(--card-bg1, #e0e7ff) 0%, var(--card-bg2, #f0f4ff) 100%); padding: 1em 2em; border-radius: 12px; min-width: 180px; box-shadow: 0 2px 8px #e0e7ff80; }
+    .dashboard-row { display: flex; gap: 2em; flex-wrap: wrap; margin-bottom: 2em; }
+    .dashboard-btn { display:inline-block; margin-top:8px; padding:6px 18px; background:var(--btn-bg, #2563eb); color:var(--btn-color, #fff); border:none; border-radius:6px; font-weight:600; cursor:pointer; transition:background 0.2s; }
+    .dashboard-btn:hover { background:var(--btn-hover, #1e40af); }
+    .recent-uploads-table th, .recent-uploads-table td { font-size: 15px; }
+    .recent-uploads-table th { background: var(--table-th-bg, #e0e7ff); }
+    .recent-uploads-table tr:nth-child(even) { background: var(--table-even-bg, #f8fafc); }
+    .theme-toggle { float:right; margin-left:1em; cursor:pointer; font-size:1.1em; color:#64748b; background:none; border:none; }
+    .quick-stats { display:flex; gap:1.5em; margin-bottom:1.5em; }
+    .quick-stats .stat { background:var(--card-bg2, #f0f4ff); border-radius:8px; padding:0.7em 1.5em; font-size:1.1em; }
+    body.dark-mode { --card-bg1: #23272f; --card-bg2: #2d3340; --btn-bg: #334155; --btn-hover: #1e293b; --btn-color: #fff; --table-th-bg: #23272f; --table-even-bg: #1e293b; color: #e0e7ff; background: #181a20; }
+    body.dark-mode .dashboard-card, body.dark-mode .quick-stats .stat { box-shadow: 0 2px 8px #181a2080; }
+    body.dark-mode .dashboard-btn { color: #fff; }
+    body.dark-mode .recent-uploads-table th, body.dark-mode .recent-uploads-table td { color: #e0e7ff; }
+  </style>
+  <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌓 Theme</button>
+  <h1 style="margin-bottom:1em; font-size:2.2em; color:var(--btn-hover, #1e293b);">Survey Records Dashboard</h1>
+  <div class="dashboard-row">
+    <div class="dashboard-card">
+      <b>Total Records:</b><br>{{ total }}
+    </div>
+    <div class="dashboard-card">
+      <b>Total Area:</b><br>{{ total_area }} sq.m
+    </div>
+    <div class="dashboard-card">
+      <b>Unique Owners:</b><br>{{ unique_owners }}
+    </div>
+    <div class="dashboard-card">
+      <b>With Boundaries:</b><br>{{ with_boundaries }}
+    </div>
+  </div>
+  <div class="quick-stats">
+    <div class="stat"><b>Avg. Area:</b> {{ avg_area|default:'-' }}</div>
+    <div class="stat"><b>Min Area:</b> {{ min_area|default:'-' }}</div>
+    <div class="stat"><b>Max Area:</b> {{ max_area|default:'-' }}</div>
+  </div>
+  <div class="dashboard-row">
+    <div style="flex:1; min-width: 320px; max-width: 500px;">
+      <canvas id="landTypeChart"></canvas>
+      <button class="dashboard-btn" onclick="downloadChart('landTypeChart', 'land_type_chart.png')">Download Chart as Image</button>
+    </div>
+    <div style="flex:1; min-width: 320px; max-width: 400px;">
+      <canvas id="landTypePie"></canvas>
+      <button class="dashboard-btn" onclick="downloadChart('landTypePie', 'land_type_pie.png')">Download Chart as Image</button>
+    </div>
+    <div style="flex:1; min-width: 320px; max-width: 400px;">
+      <canvas id="dataSourcePie"></canvas>
+      <button class="dashboard-btn" onclick="downloadChart('dataSourcePie', 'data_source_pie.png')">Download Chart as Image</button>
+    </div>
+    <div style="flex:2; min-width: 400px; max-width: 700px;">
+      <canvas id="createdLineChart"></canvas>
+      <button class="dashboard-btn" onclick="downloadChart('createdLineChart', 'created_line_chart.png')">Download Chart as Image</button>
+    </div>
+  </div>
+  <div class="dashboard-row">
+    <div style="flex:1; min-width: 320px; max-width: 400px;">
+      <canvas id="topOwnersChart"></canvas>
+      <button class="dashboard-btn" onclick="downloadChart('topOwnersChart', 'top_owners_chart.png')">Download Chart as Image</button>
+    </div>
+    <div style="flex:1; min-width: 320px; max-width: 400px;">
+      <canvas id="areaHistChart"></canvas>
+      <button class="dashboard-btn" onclick="downloadChart('areaHistChart', 'area_hist_chart.png')">Download Chart as Image</button>
+    </div>
+  </div>
+  <div style="margin-bottom: 2em;">
+    <a href="/surveys/export-csv/" class="dashboard-btn" style="margin-right:1em;">Export CSV</a>
+    <a href="/surveys/export-excel/" class="dashboard-btn" style="margin-right:1em;">Export Excel</a>
+    <a href="/surveys/export-kml/" class="dashboard-btn" style="margin-right:1em;">Export KML</a>
+    <a href="/surveys/export-pdf/" class="dashboard-btn">Export PDF</a>
+    <a href="/" class="dashboard-btn" style="float:right; background:#64748b;">Go to Main Site</a>
+  </div>
+  <div style="margin-bottom: 2em;">
+    <h3 style="font-size:1.2em; color:var(--btn-hover, #334155);">Recent Uploads</h3>
+    <button class="dashboard-btn" onclick="downloadRecentUploadsCSV()">Download Recent Uploads as CSV</button>
+    <table class="recent-uploads-table" style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th style="padding:6px; border:1px solid #e0e0e0;">Kitta No.</th>
+          <th style="padding:6px; border:1px solid #e0e0e0;">Owner</th>
+          <th style="padding:6px; border:1px solid #e0e0e0;">Area</th>
+          <th style="padding:6px; border:1px solid #e0e0e0;">Created</th>
+        </tr>
+      </thead>
+      <tbody id="recentUploadsTableBody">
+        {% for r in recent_uploads %}
+        <tr>
+          <td style="padding:6px; border:1px solid #e0e0e0;">{{ r.kitta_number }}</td>
+          <td style="padding:6px; border:1px solid #e0e0e0;">{{ r.owner_name }}</td>
+          <td style="padding:6px; border:1px solid #e0e0e0;">{{ r.area_size }}</td>
+          <td style="padding:6px; border:1px solid #e0e0e0;">{{ r.created_at|date:'Y-m-d H:i' }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4">No recent uploads.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+{% block extrahead %}{{ block.super }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+{% block content %}
+  {{ block.super }}
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      document.body.classList.toggle('dark-mode');
+      localStorage.setItem('dashboard-theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+    }
+    if (localStorage.getItem('dashboard-theme') === 'dark') {
+      document.body.classList.add('dark-mode');
+    }
+    // Download chart as image
+    function downloadChart(canvasId, filename) {
+      var link = document.createElement('a');
+      var chart = document.getElementById(canvasId);
+      link.href = chart.toDataURL('image/png');
+      link.download = filename;
+      link.click();
+    }
+    // Download recent uploads as CSV
+    function downloadRecentUploadsCSV() {
+      var rows = Array.from(document.querySelectorAll('#recentUploadsTableBody tr'));
+      var csv = 'Kitta Number,Owner Name,Area,Created\n';
+      rows.forEach(function(row) {
+        var cols = row.querySelectorAll('td');
+        if (cols.length === 4) {
+          csv += Array.from(cols).map(td => '"' + td.textContent.trim().replace(/"/g, '""') + '"').join(',') + '\n';
+        }
+      });
+      var blob = new Blob([csv], {type: 'text/csv'});
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'recent_uploads.csv';
+      link.click();
+    }
+    // Land Type Bar Chart
+    var ctx = document.getElementById('landTypeChart').getContext('2d');
+    var landTypeLabels = {{ land_type_labels|safe }};
+    var landTypeCounts = {{ land_type_counts|safe }};
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: landTypeLabels,
+        datasets: [{
+          label: 'Records by Land Type',
+          data: landTypeCounts,
+          backgroundColor: 'rgba(54, 162, 235, 0.6)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: 'Land Type Distribution' }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+    // Land Type Pie Chart
+    var landTypePieCtx = document.getElementById('landTypePie').getContext('2d');
+    new Chart(landTypePieCtx, {
+      type: 'pie',
+      data: {
+        labels: landTypeLabels,
+        datasets: [{
+          data: landTypeCounts,
+          backgroundColor: ['#36a2eb', '#ffcd56', '#ff6384', '#4bc0c0', '#a78bfa', '#f472b6', '#facc15', '#34d399'],
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Land Type Pie Chart' }
+        }
+      }
+    });
+    // Data Source Pie Chart
+    var pieCtx = document.getElementById('dataSourcePie').getContext('2d');
+    var dataSourceLabels = {{ data_source_labels|safe }};
+    var dataSourceCounts = {{ data_source_counts|safe }};
+    new Chart(pieCtx, {
+      type: 'pie',
+      data: {
+        labels: dataSourceLabels,
+        datasets: [{
+          data: dataSourceCounts,
+          backgroundColor: ['#36a2eb', '#ffcd56', '#ff6384', '#4bc0c0'],
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Data Source Distribution' }
+        }
+      }
+    });
+    // Created Per Month Line Chart
+    var lineCtx = document.getElementById('createdLineChart').getContext('2d');
+    var createdLabels = {{ created_labels|safe }};
+    var createdCounts = {{ created_counts|safe }};
+    new Chart(lineCtx, {
+      type: 'line',
+      data: {
+        labels: createdLabels,
+        datasets: [{
+          label: 'Records Created',
+          data: createdCounts,
+          fill: true,
+          borderColor: 'rgba(75,192,192,1)',
+          backgroundColor: 'rgba(75,192,192,0.2)',
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: 'Records Created Per Month' }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+    // Top Owners Bar Chart
+    var topOwnersCtx = document.getElementById('topOwnersChart').getContext('2d');
+    var topOwnersLabels = {{ top_owners_labels|safe }};
+    var topOwnersCounts = {{ top_owners_counts|safe }};
+    new Chart(topOwnersCtx, {
+      type: 'bar',
+      data: {
+        labels: topOwnersLabels,
+        datasets: [{
+          label: 'Top Owners (by record count)',
+          data: topOwnersCounts,
+          backgroundColor: 'rgba(255, 99, 132, 0.6)',
+          borderColor: 'rgba(255, 99, 132, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: 'Top 5 Owners' }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+    // Area Distribution Histogram
+    var areaHistCtx = document.getElementById('areaHistChart').getContext('2d');
+    var areaHistLabels = {{ area_hist_labels|safe }};
+    var areaHistCounts = {{ area_hist_counts|safe }};
+    new Chart(areaHistCtx, {
+      type: 'bar',
+      data: {
+        labels: areaHistLabels,
+        datasets: [{
+          label: 'Area Distribution',
+          data: areaHistCounts,
+          backgroundColor: 'rgba(54, 162, 100, 0.6)',
+          borderColor: 'rgba(54, 162, 100, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: 'Area Size Histogram' }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  </script>
+{% endblock %} 

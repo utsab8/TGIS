@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-3xl mx-auto mt-10 bg-white rounded-xl shadow-lg p-8 animate-fade-in">
+  <h2 class="text-2xl font-bold mb-6 text-gray-800">Your CSV Upload History</h2>
+  <div class="mb-4 text-right">
+    <a href="{% url 'csv_upload' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded shadow">Upload New CSV</a>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full border-collapse modern-csv-table">
+      <thead>
+        <tr>
+          <th>Filename</th>
+          <th>Date/Time</th>
+          <th>Status</th>
+          <th>Error Message</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for upload in uploads %}
+        <tr>
+          <td>{{ upload.filename }}</td>
+          <td>{{ upload.upload_time|date:'Y-m-d H:i' }}</td>
+          <td>
+            {% if upload.status == 'Success' %}
+              <span class="text-green-600 font-semibold">Success</span>
+            {% else %}
+              <span class="text-red-600 font-semibold">Failed</span>
+            {% endif %}
+          </td>
+          <td>{{ upload.error_message|default:'-' }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="text-center text-gray-500">No uploads yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<style>
+  .modern-csv-table th { background: #e0e7ef; font-weight: 600; }
+  .modern-csv-table tr:nth-child(even) { background: #f3f4f6; }
+  .modern-csv-table td, .modern-csv-table th { padding: 0.5rem 0.75rem; border: 1px solid #e5e7eb; white-space: nowrap; }
+  .modern-csv-table tr:hover { background: #f1f5f9 !important; transition: background 0.2s; }
+</style>
+{% endblock %} 
